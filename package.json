@@ -1,0 +1,15 @@
+{
+  "name": "hatchtrack-web-api",
+  "version": "1.0.0",
+  "description": "REST API for Hatchtrack",
+  "main": "app.js",
+  "scripts": {
+    "test": "NODE_ENV=development node ./app.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "pg": "^7.9.0"
+  }
+}
