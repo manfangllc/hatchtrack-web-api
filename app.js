@@ -1,6 +1,8 @@
 const express = require('express');
 const util = require('util')
 const { Pool } = require('pg');
+const jwt = require('jsonwebtoken');
+const config = require('./config');
 const app = express();
 const port = 3000;
 
@@ -14,11 +16,19 @@ const postgresPool = new Pool({
   port: 5432,
 });
 
+const apiRoutes = express.Router();
+app.use('/api', apiRoutes);
 app.use(express.json());
 
 if(process.env.NODE_ENV === 'development') {
   app.set('json spaces', 2);
 }
+
+app.listen(port, () =>
+  console.log(`Example app listening on port ${port}!`),
+);
+
+// routes /////////////////////////////////////////////////////////////////////
 
 app.use((err, req, res, next) => {
   if (err !== null) {
@@ -27,25 +37,47 @@ app.use((err, req, res, next) => {
   return next();
 });
 
-app.listen(port, () =>
-  console.log(`Example app listening on port ${port}!`),
-);
-
-// routes /////////////////////////////////////////////////////////////////////
-
-app.post("/v1/auth", (req, res) => {
+app.post("/auth", (req, res) => {
   try {
-    console.log(req.body);
-    auth.authEmail("test@widgt.ninja", "Test1337$");
-    res.status(200).send();
+    // TODO: check credentials
+    const payload = { check:  true };
+    const options = { expiresIn: 60 * 5 };
+    var token = jwt.sign(payload, config.jwtSecret, options);
+
+    res.status(200).json({
+            message: 'authentication done ',
+            token: token
+          });
   }
   catch (err) {
     res.status(422).send();
   }
 });
 
-app.get('/v1/email2uuids', (req, res) => {
+apiRoutes.use((req, res, next) =>{
+  // check header for the token
+  var token = req.headers['access-token'];
+  console.log(token);
+  // decode token
+  if (token) {
+    // verifies secret and checks if the token is expired
+    jwt.verify(token, config.jwtSecret, (err, decoded) => {
+      if (err) {
+        return res.status(401).send();
+      } else {
+        // if everything is good, save to request for use in other routes
+        req.decoded = decoded;
+        next();
+      }
+    });
 
+  } else {
+    // if there is no token
+    res.status(401).send();
+  }
+});
+
+apiRoutes.get('/v1/email2uuids', (req, res) => {
   var email = req.query.email;
   if (!email) {
     res.status(422).send();
@@ -65,8 +97,7 @@ app.get('/v1/email2uuids', (req, res) => {
   }
 });
 
-app.get('/v1/uuid2info', (req, res) => {
-
+apiRoutes.get('/v1/uuid2info', (req, res) => {
   var uuid = req.query.uuid;
   if (!uuid) {
     res.status(422).send();
