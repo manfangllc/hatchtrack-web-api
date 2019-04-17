@@ -3,6 +3,7 @@ const util = require('util')
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const https = require('https');
+const fs = require('fs')
 const config = require('./config');
 const app = express();
 const port = 18888;
@@ -46,9 +47,9 @@ else if (process.env.NODE_ENV === "production") {
     key: privateKey,
     cert: certificate,
     ca: ca
-  }, app).listen(port, () => {
+  }, app).listen(port, () =>
     console.log(`listening on port ${port} (SSL enabled)`),
-  })
+  );
 }
 
 // routes /////////////////////////////////////////////////////////////////////
