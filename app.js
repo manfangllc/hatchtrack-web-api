@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const config = require('./config');
 const app = express();
-const port = 3000;
+const port = 18888;
 
 // configuration //////////////////////////////////////////////////////////////
 
