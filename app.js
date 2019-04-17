@@ -2,6 +2,7 @@ const express = require('express');
 const util = require('util')
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
+const https = require('https');
 const config = require('./config');
 const app = express();
 const port = 18888;
@@ -20,13 +21,35 @@ const apiRoutes = express.Router();
 app.use('/api', apiRoutes);
 app.use(express.json());
 
-if(process.env.NODE_ENV === 'development') {
-  app.set('json spaces', 2);
+if (typeof process.env.NODE_ENV === "undefined") {
+  process.env.NODE_ENV = "production";
 }
 
-app.listen(port, () =>
-  console.log(`Example app listening on port ${port}!`),
-);
+if (process.env.NODE_ENV === "development") {
+  app.set('json spaces', 2);
+  app.listen(port, () =>
+    console.log(`listening on port ${port}`),
+  );
+}
+else if (process.env.NODE_ENV === "production") {
+  const privateKey = fs.readFileSync(
+    "/etc/letsencrypt/live/db.hatchtrack.com/privkey.pem",
+    "utf8");
+  const certificate = fs.readFileSync(
+    "/etc/letsencrypt/live/db.hatchtrack.com/cert.pem",
+    "utf8");
+  const ca = fs.readFileSync(
+    "/etc/letsencrypt/live/db.hatchtrack.com/chain.pem",
+    "utf8");
+
+  https.createServer({
+    key: privateKey,
+    cert: certificate,
+    ca: ca
+  }, app).listen(port, () => {
+    console.log(`listening on port ${port} (SSL enabled)`),
+  })
+}
 
 // routes /////////////////////////////////////////////////////////////////////
 
