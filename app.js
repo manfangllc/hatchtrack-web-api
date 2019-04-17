@@ -9,11 +9,11 @@ const port = 3000;
 // configuration //////////////////////////////////////////////////////////////
 
 const postgresPool = new Pool({
-  user: 'master',
-  host: 'hatchtrack-peep-user-db-test.crprnnsms8xr.us-west-2.rds.amazonaws.com',
-  database: 'hatchtrack_peep_user_db_test',
-  password: 'W6FAv5Hjkrp6vZ4L',
-  port: 5432,
+  user: config.postgresPoolUser,
+  host: config.postgresPoolHost,
+  database: config.postgresPoolDatabase,
+  password: config.postgresPoolPassword,
+  port: config.postgresPoolPort,
 });
 
 const apiRoutes = express.Router();
@@ -39,15 +39,12 @@ app.use((err, req, res, next) => {
 
 app.post("/auth", (req, res) => {
   try {
-    // TODO: check credentials
+    // TODO: check credentials in AWS cognito
     const payload = { check:  true };
     const options = { expiresIn: 60 * 5 };
     var token = jwt.sign(payload, config.jwtSecret, options);
-
-    res.status(200).json({
-            message: 'authentication done ',
-            token: token
-          });
+    // return access-token used to make requests to /api
+    res.status(200).json({ "access-token": token });
   }
   catch (err) {
     res.status(422).send();
@@ -56,22 +53,23 @@ app.post("/auth", (req, res) => {
 
 apiRoutes.use((req, res, next) =>{
   // check header for the token
-  var token = req.headers['access-token'];
-  console.log(token);
+  var token = req.headers["access-token"];
+
   // decode token
   if (token) {
     // verifies secret and checks if the token is expired
     jwt.verify(token, config.jwtSecret, (err, decoded) => {
       if (err) {
+        // not authorized
         return res.status(401).send();
       } else {
-        // if everything is good, save to request for use in other routes
+        // authorized, save to request for use in other routes
         req.decoded = decoded;
         next();
       }
     });
-
-  } else {
+  }
+  else {
     // if there is no token
     res.status(401).send();
   }
@@ -83,6 +81,7 @@ apiRoutes.get('/v1/email2uuids', (req, res) => {
     res.status(422).send();
   }
   else {
+    // postgres query to grab all Peep UUIDs for a given email account
     var q = "";
     q += "SELECT peep_uuids FROM email_2_peep_uuids ";
     q += "WHERE email='" + email + "'";
@@ -103,6 +102,7 @@ apiRoutes.get('/v1/uuid2info', (req, res) => {
     res.status(422).send();
   }
   else {
+    // postgres query to grab Peep name given a Peep UUID
     var q = "";
     q += "SELECT name FROM peep_uuid_2_info ";
     q += "WHERE uuid='" + uuid + "'";
