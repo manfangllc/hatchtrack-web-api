@@ -1,11 +1,11 @@
-const express = require('express');
-const util = require('util')
-const { Pool } = require('pg');
-const jwt = require('jsonwebtoken');
-const https = require('https');
-const morgan = require('morgan');
-const fs = require('fs');
-const config = require('./config');
+const express = require("express");
+const util = require("util")
+const { Pool } = require("pg");
+const jwt = require("jsonwebtoken");
+const https = require("https");
+const morgan = require("morgan");
+const fs = require("fs");
+const config = require("./config");
 const app = express();
 const port = 18888;
 
@@ -35,6 +35,7 @@ if (process.env.NODE_ENV === "development") {
   );
 }
 else if (process.env.NODE_ENV === "production") {
+  // Let's Encrypt certificates for SSL
   const privateKey = fs.readFileSync(
     "/etc/letsencrypt/live/db.hatchtrack.com/privkey.pem",
     "utf8");
@@ -57,6 +58,7 @@ else if (process.env.NODE_ENV === "production") {
 // routes /////////////////////////////////////////////////////////////////////
 
 app.use((err, req, res, next) => {
+  // this is used as a generic error handler for anything not caught elsewhere
   if (err !== null) {
     return res.status(400).send();
   }
@@ -78,6 +80,7 @@ app.post("/auth", (req, res) => {
 });
 
 apiRoutes.use((req, res, next) =>{
+  // all routes with "/api" will start here for authentication
   // check header for the token
   var token = req.headers["access-token"];
 
@@ -101,7 +104,7 @@ apiRoutes.use((req, res, next) =>{
   }
 });
 
-apiRoutes.get('/v1/email2uuids', (req, res) => {
+apiRoutes.get("/v1/email2uuids", (req, res) => {
   var email = req.query.email;
   if (!email) {
     res.status(422).send();
@@ -122,7 +125,7 @@ apiRoutes.get('/v1/email2uuids', (req, res) => {
   }
 });
 
-apiRoutes.get('/v1/uuid2info', (req, res) => {
+apiRoutes.get("/v1/uuid2info", (req, res) => {
   var uuid = req.query.uuid;
   if (!uuid) {
     res.status(422).send();
