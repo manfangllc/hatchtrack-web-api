@@ -3,7 +3,8 @@ const util = require('util')
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const https = require('https');
-const fs = require('fs')
+const morgan = require('morgan');
+const fs = require('fs');
 const config = require('./config');
 const app = express();
 const port = 18888;
@@ -19,7 +20,8 @@ const postgresPool = new Pool({
 });
 
 const apiRoutes = express.Router();
-app.use('/api', apiRoutes);
+app.use(morgan("combined"));
+app.use("/api", apiRoutes);
 app.use(express.json());
 
 if (typeof process.env.NODE_ENV === "undefined") {
@@ -27,7 +29,7 @@ if (typeof process.env.NODE_ENV === "undefined") {
 }
 
 if (process.env.NODE_ENV === "development") {
-  app.set('json spaces', 2);
+  app.set("json spaces", 2);
   app.listen(port, () =>
     console.log(`listening on port ${port}`),
   );
