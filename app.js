@@ -1,5 +1,7 @@
 const express = require("express");
+const awsIot = require("aws-iot-device-sdk");
 const util = require("util")
+const uuid = require("uuid/v1");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const https = require("https");
@@ -9,7 +11,7 @@ const config = require("./config");
 const app = express();
 const port = 18888;
 
-// configuration //////////////////////////////////////////////////////////////
+// postgres configuration /////////////////////////////////////////////////////
 
 const postgresPool = new Pool({
   user: config.postgresPoolUser,
@@ -19,10 +21,45 @@ const postgresPool = new Pool({
   port: config.postgresPoolPort,
 });
 
+// AWS IoT configuration //////////////////////////////////////////////////////
+
+const thingShadow = awsIot.thingShadow({
+  keyPath: config.awsIotKeyPath,
+  certPath: config.awsIotCertPath,
+  caPath: config.awsIotCaPath,
+  clientId: config.awsIotClientId,
+  host: config.awsIotHost,
+});
+
+//thingShadow.on("connect", function() {
+  //console.log("[AWS IoT]: connected");
+//});
+
+//thingShadow.on("close", function() {
+  //console.log("close");
+//});
+
+//thingShadow.on("reconnect", function() {
+  //console.log("reconnect");
+//});
+
+thingShadow.on("status", function(thingName, stat, clientToken, stateObject) {
+  //console.log("status " + stat + ": " + thingName);
+  thingShadow.unregister(thingName);
+});
+
+thingShadow.on("timeout", function(thingName, clientToken) {
+  //console.log("timeout: " + thingName);
+  thingShadow.unregister(thingName);
+});
+
+// express configuration //////////////////////////////////////////////////////
+
 const apiRoutes = express.Router();
 app.use(morgan("combined"));
 app.use("/api", apiRoutes);
 app.use(express.json());
+app.set("thingShadow", thingShadow);
 
 if (typeof process.env.NODE_ENV === "undefined") {
   process.env.NODE_ENV = "production";
@@ -143,5 +180,42 @@ apiRoutes.get("/v1/uuid2info", (req, res) => {
       var data = result.rows[0];
       res.status(200).json(data);
     });
+  }
+});
+
+app.post("/hatch", (req, res) => {
+  try {
+    const thingShadow = req.app.get("thingShadow");
+    var email = req.body.email;
+    var peepUUID = "hatchtrack-web-api";
+    var hatchUUID = uuid();
+    var endUnixTimestamp = req.body.endUnixTimestamp;
+    var measureIntervalMin = req.body.measureIntervalMin;
+    
+    var shadow = {"state":
+      {"desired":
+        {
+         "hatchUUID":hatchUUID,
+         "endUnixTimestamp":endUnixTimestamp,
+         "measureIntervalMin":measureIntervalMin
+        }
+      }
+    };
+
+    var opt = {ignoreDeltas: true, persistentSubscribe: false};
+    thingShadow.register(peepUUID, opt, function() {
+      var clientTokenUpdate = thingShadow.update(peepUUID, shadow);
+      if (clientTokenUpdate === null) {
+        console.log("update shadow failed, operation still in progress");
+        res.status(500).send();
+      }
+      else {
+        res.status(200).send();
+      }
+    });
+  }
+  catch (err) {
+    console.log(err);
+    res.status(422).send();
   }
 });

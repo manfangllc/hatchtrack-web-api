@@ -9,9 +9,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws-iot-device-sdk": "^2.2.1",
     "express": "^4.16.4",
     "jsonwebtoken": "^8.5.1",
     "morgan": "^1.9.1",
-    "pg": "^7.9.0"
+    "pg": "^7.9.0",
+    "uuid": "^3.3.2"
   }
 }
