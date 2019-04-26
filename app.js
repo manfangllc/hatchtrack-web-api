@@ -194,10 +194,9 @@ app.post("/hatch", (req, res) => {
     
     var shadow = {"state":
       {"desired":
-        {
-         "hatchUUID":hatchUUID,
-         "endUnixTimestamp":endUnixTimestamp,
-         "measureIntervalMin":measureIntervalMin
+        { "hatchUUID":hatchUUID,
+          "endUnixTimestamp":endUnixTimestamp,
+          "measureIntervalMin":measureIntervalMin
         }
       }
     };
@@ -210,6 +209,9 @@ app.post("/hatch", (req, res) => {
         res.status(500).send();
       }
       else {
+        // NOTE: In my ideal world, this would be sent only after we get a
+        // confirmation that the message has successfully been sent; this would
+        // be in the thingShadow.on("status", function()) callback.
         res.status(200).send();
       }
     });
