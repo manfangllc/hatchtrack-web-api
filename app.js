@@ -183,15 +183,24 @@ apiRoutes.get("/v1/uuid2info", (req, res) => {
   }
 });
 
-app.post("/hatch", (req, res) => {
+apiRoutes.post("/v1/hatch", (req, res) => {
   try {
     const thingShadow = req.app.get("thingShadow");
     var email = req.body.email;
-    var peepUUID = "hatchtrack-web-api";
+    //var peepUUID = "hatchtrack-web-api";
+    var peepUUID = req.body.peepUUID;
     var hatchUUID = uuid();
     var endUnixTimestamp = req.body.endUnixTimestamp;
     var measureIntervalMin = req.body.measureIntervalMin;
     
+    if ((!email) ||
+        (!peepUUID) ||
+        (!hatchUUID) ||
+        (!endUnixTimestamp) ||
+        (!measureIntervalMin)) {
+      res.status(400).send();
+    }
+
     var shadow = {"state":
       {"desired":
         { "hatchUUID":hatchUUID,
