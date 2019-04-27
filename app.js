@@ -1,4 +1,5 @@
 const express = require("express");
+const bodyParser = require("body-parser");
 const awsIot = require("aws-iot-device-sdk");
 const util = require("util")
 const uuid = require("uuid/v1");
@@ -55,11 +56,10 @@ thingShadow.on("timeout", function(thingName, clientToken) {
 
 // express configuration //////////////////////////////////////////////////////
 
-const apiRoutes = express.Router();
+const apiV1Routes = express.Router();
 app.use(morgan("combined"));
-app.use("/api", apiRoutes);
-app.use(express.json());
-app.set("thingShadow", thingShadow);
+app.use(bodyParser.json());
+app.use("/api/v1", apiV1Routes);
 
 if (typeof process.env.NODE_ENV === "undefined") {
   process.env.NODE_ENV = "production";
@@ -116,7 +116,7 @@ app.post("/auth", (req, res) => {
   }
 });
 
-apiRoutes.use((req, res, next) =>{
+apiV1Routes.use((req, res, next) =>{
   // all routes with "/api" will start here for authentication
   // check header for the token
   var token = req.headers["access-token"];
@@ -141,7 +141,7 @@ apiRoutes.use((req, res, next) =>{
   }
 });
 
-apiRoutes.get("/v1/email2uuids", (req, res) => {
+apiV1Routes.get("/email2uuids", (req, res) => {
   var email = req.query.email;
   if (!email) {
     res.status(422).send();
@@ -162,7 +162,7 @@ apiRoutes.get("/v1/email2uuids", (req, res) => {
   }
 });
 
-apiRoutes.get("/v1/uuid2info", (req, res) => {
+apiV1Routes.get("/uuid2info", (req, res) => {
   var uuid = req.query.uuid;
   if (!uuid) {
     res.status(422).send();
@@ -183,50 +183,56 @@ apiRoutes.get("/v1/uuid2info", (req, res) => {
   }
 });
 
-apiRoutes.post("/v1/hatch", (req, res) => {
-  try {
-    const thingShadow = req.app.get("thingShadow");
-    var email = req.body.email;
-    //var peepUUID = "hatchtrack-web-api";
-    var peepUUID = req.body.peepUUID;
-    var hatchUUID = uuid();
-    var endUnixTimestamp = req.body.endUnixTimestamp;
-    var measureIntervalMin = req.body.measureIntervalMin;
-    
-    if ((!email) ||
-        (!peepUUID) ||
-        (!hatchUUID) ||
-        (!endUnixTimestamp) ||
-        (!measureIntervalMin)) {
-      res.status(400).send();
+apiV1Routes.post("/hatch", (req, res) => {
+  var email = req.body.email;
+  //var peepUUID = "hatchtrack-web-api";
+  var peepUUID = req.body.peepUUID;
+  var hatchUUID = uuid();
+  var endUnixTimestamp = req.body.endUnixTimestamp;
+  var measureIntervalMin = req.body.measureIntervalMin;
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof peepUUID) ||
+      ("undefined" === typeof hatchUUID) ||
+      ("undefined" === typeof endUnixTimestamp) ||
+      ("undefined" === typeof measureIntervalMin)) {
+    res.status(400).send();
+  }
+  else {
+    if (measureIntervalMin <= 0) {
+      measureIntervalMin = 15;
     }
 
-    var shadow = {"state":
-      {"desired":
-        { "hatchUUID":hatchUUID,
-          "endUnixTimestamp":endUnixTimestamp,
-          "measureIntervalMin":measureIntervalMin
-        }
-      }
-    };
+    // TODO: validate endUnixTimestamp?
 
-    var opt = {ignoreDeltas: true, persistentSubscribe: false};
-    thingShadow.register(peepUUID, opt, function() {
-      var clientTokenUpdate = thingShadow.update(peepUUID, shadow);
-      if (clientTokenUpdate === null) {
-        console.log("update shadow failed, operation still in progress");
-        res.status(500).send();
-      }
-      else {
-        // NOTE: In my ideal world, this would be sent only after we get a
-        // confirmation that the message has successfully been sent; this would
-        // be in the thingShadow.on("status", function()) callback.
-        res.status(200).send();
-      }
-    });
-  }
-  catch (err) {
-    console.log(err);
-    res.status(422).send();
+    try {
+      var shadow = {"state":
+        {"desired":
+          { "hatchUUID":hatchUUID,
+            "endUnixTimestamp":endUnixTimestamp,
+            "measureIntervalMin":measureIntervalMin
+          }
+        }
+      };
+
+      var opt = {ignoreDeltas: true, persistentSubscribe: false};
+      thingShadow.register(peepUUID, opt, function() {
+        var clientTokenUpdate = thingShadow.update(peepUUID, shadow);
+        if (clientTokenUpdate === null) {
+          console.log("update shadow failed, operation still in progress");
+          res.status(500).send();
+        }
+        else {
+          // NOTE: In my ideal world, this would be sent only after we get a
+          // confirmation that the message has successfully been sent; this
+          // would be in the thingShadow.on("status", function()) callback.
+          res.status(200).send();
+        }
+      });
+    }
+    catch (err) {
+      console.log(err);
+      res.status(422).send();
+    }
   }
 });
