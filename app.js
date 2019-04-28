@@ -1,5 +1,8 @@
 const express = require("express");
+const bodyParser = require("body-parser");
+const awsIot = require("aws-iot-device-sdk");
 const util = require("util")
+const uuid = require("uuid/v1");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const https = require("https");
@@ -9,7 +12,7 @@ const config = require("./config");
 const app = express();
 const port = 18888;
 
-// configuration //////////////////////////////////////////////////////////////
+// postgres configuration /////////////////////////////////////////////////////
 
 const postgresPool = new Pool({
   user: config.postgresPoolUser,
@@ -19,10 +22,44 @@ const postgresPool = new Pool({
   port: config.postgresPoolPort,
 });
 
-const apiRoutes = express.Router();
+// AWS IoT configuration //////////////////////////////////////////////////////
+
+const thingShadow = awsIot.thingShadow({
+  keyPath: config.awsIotKeyPath,
+  certPath: config.awsIotCertPath,
+  caPath: config.awsIotCaPath,
+  clientId: config.awsIotClientId,
+  host: config.awsIotHost,
+});
+
+//thingShadow.on("connect", function() {
+  //console.log("[AWS IoT]: connected");
+//});
+
+//thingShadow.on("close", function() {
+  //console.log("close");
+//});
+
+//thingShadow.on("reconnect", function() {
+  //console.log("reconnect");
+//});
+
+thingShadow.on("status", function(thingName, stat, clientToken, stateObject) {
+  //console.log("status " + stat + ": " + thingName);
+  thingShadow.unregister(thingName);
+});
+
+thingShadow.on("timeout", function(thingName, clientToken) {
+  //console.log("timeout: " + thingName);
+  thingShadow.unregister(thingName);
+});
+
+// express configuration //////////////////////////////////////////////////////
+
+const apiV1Routes = express.Router();
 app.use(morgan("combined"));
-app.use("/api", apiRoutes);
-app.use(express.json());
+app.use(bodyParser.json());
+app.use("/api/v1", apiV1Routes);
 
 if (typeof process.env.NODE_ENV === "undefined") {
   process.env.NODE_ENV = "production";
@@ -79,7 +116,7 @@ app.post("/auth", (req, res) => {
   }
 });
 
-apiRoutes.use((req, res, next) =>{
+apiV1Routes.use((req, res, next) =>{
   // all routes with "/api" will start here for authentication
   // check header for the token
   var token = req.headers["access-token"];
@@ -104,7 +141,7 @@ apiRoutes.use((req, res, next) =>{
   }
 });
 
-apiRoutes.get("/v1/email2uuids", (req, res) => {
+apiV1Routes.get("/email2uuids", (req, res) => {
   var email = req.query.email;
   if (!email) {
     res.status(422).send();
@@ -125,7 +162,7 @@ apiRoutes.get("/v1/email2uuids", (req, res) => {
   }
 });
 
-apiRoutes.get("/v1/uuid2info", (req, res) => {
+apiV1Routes.get("/uuid2info", (req, res) => {
   var uuid = req.query.uuid;
   if (!uuid) {
     res.status(422).send();
@@ -143,5 +180,59 @@ apiRoutes.get("/v1/uuid2info", (req, res) => {
       var data = result.rows[0];
       res.status(200).json(data);
     });
+  }
+});
+
+apiV1Routes.post("/hatch", (req, res) => {
+  var email = req.body.email;
+  //var peepUUID = "hatchtrack-web-api";
+  var peepUUID = req.body.peepUUID;
+  var hatchUUID = uuid();
+  var endUnixTimestamp = req.body.endUnixTimestamp;
+  var measureIntervalMin = req.body.measureIntervalMin;
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof peepUUID) ||
+      ("undefined" === typeof hatchUUID) ||
+      ("undefined" === typeof endUnixTimestamp) ||
+      ("undefined" === typeof measureIntervalMin)) {
+    res.status(400).send();
+  }
+  else {
+    if (measureIntervalMin <= 0) {
+      measureIntervalMin = 15;
+    }
+
+    // TODO: validate endUnixTimestamp?
+
+    try {
+      var shadow = {"state":
+        {"desired":
+          { "hatchUUID":hatchUUID,
+            "endUnixTimestamp":endUnixTimestamp,
+            "measureIntervalMin":measureIntervalMin
+          }
+        }
+      };
+
+      var opt = {ignoreDeltas: true, persistentSubscribe: false};
+      thingShadow.register(peepUUID, opt, function() {
+        var clientTokenUpdate = thingShadow.update(peepUUID, shadow);
+        if (clientTokenUpdate === null) {
+          console.log("update shadow failed, operation still in progress");
+          res.status(500).send();
+        }
+        else {
+          // NOTE: In my ideal world, this would be sent only after we get a
+          // confirmation that the message has successfully been sent; this
+          // would be in the thingShadow.on("status", function()) callback.
+          res.status(200).send();
+        }
+      });
+    }
+    catch (err) {
+      console.log(err);
+      res.status(422).send();
+    }
   }
 });
