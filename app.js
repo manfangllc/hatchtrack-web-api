@@ -1,7 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const awsIot = require("aws-iot-device-sdk");
-const util = require("util")
+const awsCognito = require('amazon-cognito-identity-js');
+const util = require("util");
 const uuid = require("uuid/v1");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
@@ -12,6 +13,8 @@ const config = require("./config");
 const app = express();
 const port = 18888;
 
+global.fetch = require('node-fetch');
+
 // postgres configuration /////////////////////////////////////////////////////
 
 const postgresPool = new Pool({
@@ -20,6 +23,13 @@ const postgresPool = new Pool({
   database: config.postgresPoolDatabase,
   password: config.postgresPoolPassword,
   port: config.postgresPoolPort,
+});
+
+// AWS Cognito configuration //////////////////////////////////////////////////
+
+var cognitoPool = new awsCognito.CognitoUserPool({
+  UserPoolId: "us-west-2_wOcu7aBMM",
+  ClientId: "3613d9a19u167arbjab22ip8ee",
 });
 
 // AWS IoT configuration //////////////////////////////////////////////////////
@@ -103,16 +113,44 @@ app.use((err, req, res, next) => {
 });
 
 app.post("/auth", (req, res) => {
-  try {
-    // TODO: check credentials in AWS cognito
-    const payload = { check:  true };
-    const options = { expiresIn: 60 * 5 };
-    var token = jwt.sign(payload, config.jwtSecret, options);
-    // return access-token used to make requests to /api
-    res.status(200).json({ "access-token": token });
+  var email = req.body.email;
+  var password= req.body.password;
+
+  if (("undefined" === typeof email) || ("undefined" === typeof password)) {
+    res.status(400).send();
   }
-  catch (err) {
-    res.status(422).send();
+  else {
+    try {
+      var cognitoUser = new awsCognito.CognitoUser({
+        Username : email,
+        Pool : cognitoPool,
+      });
+
+      var cognitoAuth = new awsCognito.AuthenticationDetails({
+          Username : email,
+          Password : password,
+      });
+
+      cognitoUser.authenticateUser(cognitoAuth, {
+          onSuccess: function (result) {
+              // TODO: It would be cool to use the accessToken provided by AWS.
+              //var accessToken = result.getAccessToken().getJwtToken();
+
+              const payload = { check:  true };
+              const options = { expiresIn: 60 * 5 };
+              var token = jwt.sign(payload, config.jwtSecret, options);
+              // return access-token used to make requests to /api
+              res.status(200).json({ "access-token": token });
+          },
+
+          onFailure: function(err) {
+              res.status(401).send();
+          },
+      });
+    }
+    catch (err) {
+      res.status(422).send();
+    }
   }
 });
 
@@ -185,7 +223,6 @@ apiV1Routes.get("/uuid2info", (req, res) => {
 
 apiV1Routes.post("/hatch", (req, res) => {
   var email = req.body.email;
-  //var peepUUID = "hatchtrack-web-api";
   var peepUUID = req.body.peepUUID;
   var hatchUUID = uuid();
   var endUnixTimestamp = req.body.endUnixTimestamp;
