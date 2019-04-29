@@ -42,28 +42,6 @@ const thingShadow = awsIot.thingShadow({
   host: config.awsIotHost,
 });
 
-//thingShadow.on("connect", function() {
-  //console.log("[AWS IoT]: connected");
-//});
-
-//thingShadow.on("close", function() {
-  //console.log("close");
-//});
-
-//thingShadow.on("reconnect", function() {
-  //console.log("reconnect");
-//});
-
-thingShadow.on("status", function(thingName, stat, clientToken, stateObject) {
-  //console.log("status " + stat + ": " + thingName);
-  thingShadow.unregister(thingName);
-});
-
-thingShadow.on("timeout", function(thingName, clientToken) {
-  //console.log("timeout: " + thingName);
-  thingShadow.unregister(thingName);
-});
-
 // express configuration //////////////////////////////////////////////////////
 
 const apiV1Routes = express.Router();
@@ -254,16 +232,27 @@ apiV1Routes.post("/hatch", (req, res) => {
 
       var opt = {ignoreDeltas: true, persistentSubscribe: false};
       thingShadow.register(peepUUID, opt, function() {
+
+        thingShadow.on("status",
+                       function(thingName, stat, clientToken, stateObject) {
+          thingShadow.unregister(thingName);
+          if (stat === "accepted") {
+            res.status(200).send();
+          }
+          else {
+            res.status(500).send();
+          }
+        });
+
+        thingShadow.on("timeout", function(thingName, clientToken) {
+          thingShadow.unregister(thingName);
+          res.status(500).send();
+        });
+
         var clientTokenUpdate = thingShadow.update(peepUUID, shadow);
         if (clientTokenUpdate === null) {
           console.log("update shadow failed, operation still in progress");
           res.status(500).send();
-        }
-        else {
-          // NOTE: In my ideal world, this would be sent only after we get a
-          // confirmation that the message has successfully been sent; this
-          // would be in the thingShadow.on("status", function()) callback.
-          res.status(200).send();
         }
       });
     }
