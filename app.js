@@ -118,7 +118,7 @@ app.post("/auth", (req, res) => {
               const options = { expiresIn: 60 * 5 };
               var token = jwt.sign(payload, config.jwtSecret, options);
               // return access-token used to make requests to /api
-              res.status(200).json({ "access-token": token });
+              res.status(200).json({ "accessToken": token });
           },
 
           onFailure: function(err) {
@@ -159,7 +159,7 @@ apiV1Routes.use((req, res, next) =>{
 
 apiV1Routes.get("/email2uuids", (req, res) => {
   var email = req.query.email;
-  if (!email) {
+  if ("undefined" === email) {
     res.status(422).send();
   }
   else {
@@ -170,7 +170,8 @@ apiV1Routes.get("/email2uuids", (req, res) => {
 
     postgresPool.query(q, (err, result) => {
       if (err) {
-        throw err;
+        console.error(err);
+        res.status(500).send();
       }
       var data = result.rows[0];
       res.status(200).json(data);
@@ -180,7 +181,7 @@ apiV1Routes.get("/email2uuids", (req, res) => {
 
 apiV1Routes.get("/uuid2info", (req, res) => {
   var uuid = req.query.uuid;
-  if (!uuid) {
+  if ("undefined" === uuid) {
     res.status(422).send();
   }
   else {
@@ -191,26 +192,126 @@ apiV1Routes.get("/uuid2info", (req, res) => {
 
     postgresPool.query(q, (err, result) => {
       if (err) {
-        throw err;
+        console.error(err);
+        res.status(500).send();
       }
-      var data = result.rows[0];
-      res.status(200).json(data);
+      else {
+        var data = result.rows[0];
+        res.status(200).json(data);
+      }
     });
   }
 });
 
-apiV1Routes.post("/hatch", (req, res) => {
+apiV1Routes.post("/uuid2info", (req, res) => {
+  var peepUUID = req.body.peepUUID;
+  var peepName= req.body.peepName;
+
+  if (("undefined" === typeof peepUUID) ||
+      ("undefined" === typeof peepName)) {
+    res.status(422).send();
+  }
+  else {
+    // postgrest query to update Peep name
+    var q = "";
+    q += "INSERT INTO peep_uuid_2_info (uuid, name) ";
+    q += "VALUES ('" + peepUUID + "','" + peepName + "') ";
+    q += "ON CONFLICT (uuid) DO UPDATE ";
+    q += "SET name = '" + peepName +"'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        res.status(200).send();
+      }
+    });
+  }
+});
+
+function uuid2hatchPostgres(peepUnit, callback) {
+  var q = "";
+  q += "INSERT INTO peep_uuid_2_hatch "
+  q += "(uuid, hatch_uuid, end_unix_timestamp, "
+  q += "measure_interval_min, temperature_offset) ";
+  q += "VALUES ('";
+  q += peepUnit.uuid + "','"; // str
+  q += peepUnit.hatchUUID + "',"; // str
+  q += peepUnit.endUnixTimestamp + ","; // int
+  q += peepUnit.measureIntervalMin + ","; // int
+  q += peepUnit.temperatureOffset + ") "; // int
+  q += "ON CONFLICT (uuid) DO UPDATE ";
+  q += "SET "
+  q += "hatch_uuid=EXCLUDED.hatch_uuid, ";
+  q += "end_unix_timestamp=EXCLUDED.end_unix_timestamp, ";
+  q += "measure_interval_min=EXCLUDED.measure_interval_min, ";
+  q += "temperature_offset=EXCLUDED.temperature_offset";
+
+  postgresPool.query(q, (err, result) => {
+    if (err) {
+      console.error(err);
+      throw 500;
+    }
+    else {
+      callback(peepUnit);
+    }
+  });
+}
+
+function uuid2hatchAWS(peepUnit, callback) {
+  var shadow = {"state":
+    {"desired":
+      { "hatchUUID": peepUnit.hatchUUID,
+        "endUnixTimestamp": peepUnit.endUnixTimestamp,
+        "measureIntervalMin": peepUnit.measureIntervalMin,
+      }
+    }
+  };
+
+  var peepUUID = peepUnit.uuid;
+  var opt = {ignoreDeltas: true, persistentSubscribe: false};
+  thingShadow.register(peepUUID, opt, function() {
+
+    thingShadow.on("status",
+                   function(thingName, stat, clientToken, stateObject) {
+      thingShadow.unregister(thingName);
+      if (stat === "accepted") {
+        callback(peepUnit);
+      }
+      else {
+        throw 500;
+      }
+    });
+
+    thingShadow.on("timeout", function(thingName, clientToken) {
+      thingShadow.unregister(thingName);
+      throw 500;
+    });
+
+    var clientTokenUpdate = thingShadow.update(peepUUID, shadow);
+    if (clientTokenUpdate === null) {
+      console.log("update shadow failed, operation still in progress");
+      throw 500;
+    }
+  });
+}
+
+apiV1Routes.post("/uuid2hatch", (req, res) => {
   var email = req.body.email;
   var peepUUID = req.body.peepUUID;
   var hatchUUID = uuid();
-  var endUnixTimestamp = req.body.endUnixTimestamp;
-  var measureIntervalMin = req.body.measureIntervalMin;
+  var endUnixTimestamp = parseInt(req.body.endUnixTimestamp);
+  var measureIntervalMin = parseInt(req.body.measureIntervalMin);
+  var temperatureOffset = parseInt(req.body.temperatureOffset);
 
   if (("undefined" === typeof email) ||
       ("undefined" === typeof peepUUID) ||
       ("undefined" === typeof hatchUUID) ||
       ("undefined" === typeof endUnixTimestamp) ||
-      ("undefined" === typeof measureIntervalMin)) {
+      ("undefined" === typeof measureIntervalMin) ||
+      ("undefined" === typeof temperatureOffset)) {
     res.status(400).send();
   }
   else {
@@ -218,47 +319,31 @@ apiV1Routes.post("/hatch", (req, res) => {
       measureIntervalMin = 15;
     }
 
-    // TODO: validate endUnixTimestamp?
+    var peepUnit = {
+      email: email,
+      uuid: peepUUID,
+      hatchUUID: hatchUUID,
+      endUnixTimestamp: endUnixTimestamp,
+      measureIntervalMin: measureIntervalMin,
+      temperatureOffset: temperatureOffset,
+    };
+
+    // TODO: post data to postgres
 
     try {
-      var shadow = {"state":
-        {"desired":
-          { "hatchUUID":hatchUUID,
-            "endUnixTimestamp":endUnixTimestamp,
-            "measureIntervalMin":measureIntervalMin
-          }
-        }
-      };
-
-      var opt = {ignoreDeltas: true, persistentSubscribe: false};
-      thingShadow.register(peepUUID, opt, function() {
-
-        thingShadow.on("status",
-                       function(thingName, stat, clientToken, stateObject) {
-          thingShadow.unregister(thingName);
-          if (stat === "accepted") {
-            res.status(200).send();
-          }
-          else {
-            res.status(500).send();
-          }
+      uuid2hatchAWS(peepUnit, (peepUnit) => {
+        uuid2hatchPostgres(peepUnit, (peepUnit) => {
+          res.status(200).send();
         });
-
-        thingShadow.on("timeout", function(thingName, clientToken) {
-          thingShadow.unregister(thingName);
-          res.status(500).send();
-        });
-
-        var clientTokenUpdate = thingShadow.update(peepUUID, shadow);
-        if (clientTokenUpdate === null) {
-          console.log("update shadow failed, operation still in progress");
-          res.status(500).send();
-        }
       });
     }
     catch (err) {
       console.log(err);
-      res.status(422).send();
+      res.status(500).send();
     }
   }
+});
+
+apiV1Routes.get("/uuid2hatch", (req, res) => {
+  // TODO: query postgres for peep data
 });
