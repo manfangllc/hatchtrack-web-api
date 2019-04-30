@@ -328,8 +328,6 @@ apiV1Routes.post("/uuid2hatch", (req, res) => {
       temperatureOffset: temperatureOffset,
     };
 
-    // TODO: post data to postgres
-
     try {
       uuid2hatchAWS(peepUnit, (peepUnit) => {
         uuid2hatchPostgres(peepUnit, (peepUnit) => {
@@ -345,5 +343,37 @@ apiV1Routes.post("/uuid2hatch", (req, res) => {
 });
 
 apiV1Routes.get("/uuid2hatch", (req, res) => {
-  // TODO: query postgres for peep data
+  var peepUUID = req.query.peepUUID;
+
+  if ("undefined" === peepUUID) {
+    res.status(400).send();
+  }
+  else {
+    var q = "";
+    q += "SELECT ";
+    q += "hatch_uuid, end_unix_timestamp, ";
+    q += "measure_interval_min, temperature_offset ";
+    q += "FROM peep_uuid_2_hatch WHERE uuid='" + peepUUID + "'";
+
+    const query = {
+      text: q,
+      rowMode: 'array',
+    };
+
+    postgresPool.query(query, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var data = result.rows[0];
+        res.status(200).json({
+          "hatchUUID": data[0],
+          "endUnixTimestamp": data[1],
+          "measureIntervalMin": data[2],
+          "temperatureOffset": data[3],
+        });
+      }
+    });
+  }
 });

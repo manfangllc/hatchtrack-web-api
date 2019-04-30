@@ -16,6 +16,15 @@ postDataJsonResp(url + "/auth", auth)
       temperatureOffset: 3,
     };
     postData(url + "/api/v1/uuid2hatch", accessToken, info)
+      .then(function() {
+        getData(url + "/api/v1/uuid2hatch?peepUUID=" + info.peepUUID, accessToken)
+          .then(function(data) {
+            console.log(data);
+          })
+          .catch(function(error) {
+            console.error(error);
+          });
+      })
       .catch(function(error) {
         console.error(error);
       });
@@ -24,6 +33,7 @@ postDataJsonResp(url + "/auth", auth)
     console.error(error);
   });
 
+// returns JSON
 function postDataJsonResp(url = ``, data = {}) {
   return fetch(url, {
     method: "POST",
@@ -47,7 +57,7 @@ function postDataJsonResp(url = ``, data = {}) {
   });
 }
 
-// Returns status code.
+// returns status code.
 function postData(url = ``, accessToken = ``, data = {}) {
   return fetch(url, {
     method: "POST",
@@ -64,6 +74,30 @@ function postData(url = ``, accessToken = ``, data = {}) {
   })
   .then(function(response) {
     if (200 !== response.status) {
+      throw "Error: " + response.status.toString();
+    }
+  });
+}
+
+// returns JSON
+function getData(url = ``, accessToken = ``) {
+  return fetch(url, {
+    method: "GET",
+    mode: "cors",
+    cache: "no-cache",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      "access-token": accessToken,
+    },
+    redirect: "follow",
+    referrer: "no-referrer",
+  })
+  .then(function(response) {
+    if (200 === response.status) {
+      return response.json()
+    }
+    else {
       throw "Error: " + response.status.toString();
     }
   });
