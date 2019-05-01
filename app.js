@@ -355,19 +355,14 @@ apiV1Routes.get("/uuid2hatch", (req, res) => {
     q += "measure_interval_min, temperature_offset ";
     q += "FROM peep_uuid_2_hatch WHERE uuid='" + peepUUID + "'";
 
-    const query = {
-      text: q,
-      rowMode: 'array',
-    };
-
-    postgresPool.query(query, (err, result) => {
+    postgresPool.query({text: q, rowMode: 'array'}, (err, result) => {
       if (err) {
         console.error(err);
         res.status(500).send();
       }
       else {
         var data = result.rows[0];
-        if ("undefined" === data) {
+        if ("undefined" === typeof data) {
           res.status(200).json({
             "hatchUUID": "n/a",
             "endUnixTimestamp": 0,
