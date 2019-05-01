@@ -367,12 +367,22 @@ apiV1Routes.get("/uuid2hatch", (req, res) => {
       }
       else {
         var data = result.rows[0];
-        res.status(200).json({
-          "hatchUUID": data[0],
-          "endUnixTimestamp": data[1],
-          "measureIntervalMin": data[2],
-          "temperatureOffset": data[3],
-        });
+        if ("undefined" === data) {
+          res.status(200).json({
+            "hatchUUID": "n/a",
+            "endUnixTimestamp": 0,
+            "measureIntervalMin": 15,
+            "temperatureOffset": 0,
+          });
+        }
+        else {
+          res.status(200).json({
+            "hatchUUID": data[0],
+            "endUnixTimestamp": data[1],
+            "measureIntervalMin": data[2],
+            "temperatureOffset": data[3],
+          });
+        }
       }
     });
   }
