@@ -205,7 +205,7 @@ apiV1Routes.get("/uuid2info", (req, res) => {
 
 apiV1Routes.post("/uuid2info", (req, res) => {
   var peepUUID = req.body.peepUUID;
-  var peepName= req.body.peepName;
+  var peepName = req.body.peepName;
 
   if (("undefined" === typeof peepUUID) ||
       ("undefined" === typeof peepName)) {
@@ -235,19 +235,19 @@ function uuid2hatchPostgres(peepUnit, callback) {
   var q = "";
   q += "INSERT INTO peep_uuid_2_hatch "
   q += "(uuid, hatch_uuid, end_unix_timestamp, "
-  q += "measure_interval_min, temperature_offset) ";
+  q += "measure_interval_min, temperature_offset_celsius) ";
   q += "VALUES ('";
   q += peepUnit.uuid + "','"; // str
   q += peepUnit.hatchUUID + "',"; // str
   q += peepUnit.endUnixTimestamp + ","; // int
   q += peepUnit.measureIntervalMin + ","; // int
-  q += peepUnit.temperatureOffset + ") "; // int
+  q += peepUnit.temperatureOffsetCelsius + ") "; // int
   q += "ON CONFLICT (uuid) DO UPDATE ";
   q += "SET "
   q += "hatch_uuid=EXCLUDED.hatch_uuid, ";
   q += "end_unix_timestamp=EXCLUDED.end_unix_timestamp, ";
   q += "measure_interval_min=EXCLUDED.measure_interval_min, ";
-  q += "temperature_offset=EXCLUDED.temperature_offset";
+  q += "temperature_offset_celcius=EXCLUDED.temperature_offset";
 
   postgresPool.query(q, (err, result) => {
     if (err) {
@@ -311,8 +311,8 @@ apiV1Routes.post("/uuid2hatch", (req, res) => {
       ("undefined" === typeof hatchUUID) ||
       ("undefined" === typeof endUnixTimestamp) ||
       ("undefined" === typeof measureIntervalMin) ||
-      ("undefined" === typeof temperatureOffset)) {
-    res.status(400).send();
+      ("undefined" === typeof temperatureOffsetCelsius)) {
+    res.status(422).send();
   }
   else {
     if (measureIntervalMin <= 0) {
