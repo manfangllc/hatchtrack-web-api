@@ -13,7 +13,7 @@ postDataJsonResp(url + "/auth", auth)
       email:"test@widgt.ninja",
       endUnixTimestamp: 0,
       measureIntervalMin: 22,
-      temperatureOffset: 3,
+      temperatureOffsetCelsius: 3,
     };
     postData(url + "/api/v1/uuid2hatch", accessToken, info)
       .then(function() {

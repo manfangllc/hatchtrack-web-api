@@ -85,6 +85,7 @@ else if (process.env.NODE_ENV === "production") {
 app.use((err, req, res, next) => {
   // this is used as a generic error handler for anything not caught elsewhere
   if (err !== null) {
+    console.log(err);
     return res.status(400).send();
   }
   return next();
@@ -235,7 +236,7 @@ function uuid2hatchPostgres(peepUnit, callback) {
   var q = "";
   q += "INSERT INTO peep_uuid_2_hatch "
   q += "(uuid, hatch_uuid, end_unix_timestamp, "
-  q += "measure_interval_min, temperature_offset_celsius_celsius) ";
+  q += "measure_interval_min, temperature_offset_celsius) ";
   q += "VALUES ('";
   q += peepUnit.uuid + "','"; // str
   q += peepUnit.hatchUUID + "',"; // str
@@ -247,7 +248,7 @@ function uuid2hatchPostgres(peepUnit, callback) {
   q += "hatch_uuid=EXCLUDED.hatch_uuid, ";
   q += "end_unix_timestamp=EXCLUDED.end_unix_timestamp, ";
   q += "measure_interval_min=EXCLUDED.measure_interval_min, ";
-  q += "temperature_offset_celsius_celcius=EXCLUDED.temperature_offset_celsius";
+  q += "temperature_offset_celsius=EXCLUDED.temperature_offset_celsius";
 
   postgresPool.query(q, (err, result) => {
     if (err) {
@@ -325,7 +326,7 @@ apiV1Routes.post("/uuid2hatch", (req, res) => {
       hatchUUID: hatchUUID,
       endUnixTimestamp: endUnixTimestamp,
       measureIntervalMin: measureIntervalMin,
-      temperatureOffset: temperatureOffset,
+      temperatureOffsetCelsius: temperatureOffsetCelsius,
     };
 
     try {
@@ -367,7 +368,7 @@ apiV1Routes.get("/uuid2hatch", (req, res) => {
             "hatchUUID": "n/a",
             "endUnixTimestamp": 0,
             "measureIntervalMin": 15,
-            "temperatureOffset": 0,
+            "temperatureOffsetCelsius": 0,
           });
         }
         else {
@@ -375,7 +376,7 @@ apiV1Routes.get("/uuid2hatch", (req, res) => {
             "hatchUUID": data[0],
             "endUnixTimestamp": data[1],
             "measureIntervalMin": data[2],
-            "temperatureOffset": data[3],
+            "temperatureOffsetCelsius": data[3],
           });
         }
       }
