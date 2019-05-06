@@ -235,7 +235,7 @@ function uuid2hatchPostgres(peepUnit, callback) {
   var q = "";
   q += "INSERT INTO peep_uuid_2_hatch "
   q += "(uuid, hatch_uuid, end_unix_timestamp, "
-  q += "measure_interval_min, temperature_offset_celsius) ";
+  q += "measure_interval_min, temperature_offset_celsius_celsius) ";
   q += "VALUES ('";
   q += peepUnit.uuid + "','"; // str
   q += peepUnit.hatchUUID + "',"; // str
@@ -247,7 +247,7 @@ function uuid2hatchPostgres(peepUnit, callback) {
   q += "hatch_uuid=EXCLUDED.hatch_uuid, ";
   q += "end_unix_timestamp=EXCLUDED.end_unix_timestamp, ";
   q += "measure_interval_min=EXCLUDED.measure_interval_min, ";
-  q += "temperature_offset_celcius=EXCLUDED.temperature_offset";
+  q += "temperature_offset_celsius_celcius=EXCLUDED.temperature_offset_celsius";
 
   postgresPool.query(q, (err, result) => {
     if (err) {
@@ -352,7 +352,7 @@ apiV1Routes.get("/uuid2hatch", (req, res) => {
     var q = "";
     q += "SELECT ";
     q += "hatch_uuid, end_unix_timestamp, ";
-    q += "measure_interval_min, temperature_offset ";
+    q += "measure_interval_min, temperature_offset_celsius ";
     q += "FROM peep_uuid_2_hatch WHERE uuid='" + peepUUID + "'";
 
     postgresPool.query({text: q, rowMode: 'array'}, (err, result) => {
