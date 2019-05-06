@@ -304,7 +304,7 @@ apiV1Routes.post("/uuid2hatch", (req, res) => {
   var hatchUUID = uuid();
   var endUnixTimestamp = parseInt(req.body.endUnixTimestamp);
   var measureIntervalMin = parseInt(req.body.measureIntervalMin);
-  var temperatureOffset = parseInt(req.body.temperatureOffset);
+  var temperatureOffsetCelsius = parseInt(req.body.temperatureOffsetCelsius);
 
   if (("undefined" === typeof email) ||
       ("undefined" === typeof peepUUID) ||
