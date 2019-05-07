@@ -11,7 +11,7 @@ postDataJsonResp(url + "/auth", auth)
     const info = {
       peepUUID:"d1533a96-6ab3-42dd-bbce-c6632c296985",
       email:"test@widgt.ninja",
-      endUnixTimestamp: 0,
+      endUnixTimestamp: 2147483647,
       measureIntervalMin: 22,
       temperatureOffsetCelsius: 3,
     };

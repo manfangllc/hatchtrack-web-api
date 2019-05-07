@@ -267,6 +267,7 @@ function uuid2hatchAWS(peepUnit, callback) {
       { "hatchUUID": peepUnit.hatchUUID,
         "endUnixTimestamp": peepUnit.endUnixTimestamp,
         "measureIntervalMin": peepUnit.measureIntervalMin,
+        "temperatureOffsetCelsius": peepUnit.temperatureOffsetCelsius,
       }
     }
   };
@@ -374,9 +375,10 @@ apiV1Routes.get("/uuid2hatch", (req, res) => {
         else {
           res.status(200).json({
             "hatchUUID": data[0],
-            "endUnixTimestamp": data[1],
-            "measureIntervalMin": data[2],
-            "temperatureOffsetCelsius": data[3],
+             // force int conversion, BIGINT is returned as string
+            "endUnixTimestamp": parseInt(data[1]),
+            "measureIntervalMin": parseInt(data[2]),
+            "temperatureOffsetCelsius": parseInt(data[3]),
           });
         }
       }
