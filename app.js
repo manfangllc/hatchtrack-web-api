@@ -115,7 +115,7 @@ app.post("/auth", (req, res) => {
               // TODO: It would be cool to use the accessToken provided by AWS.
               //var accessToken = result.getAccessToken().getJwtToken();
 
-              const payload = { check:  true };
+              const payload = { email:  email };
               const options = { expiresIn: 60 * 5 };
               var token = jwt.sign(payload, config.jwtSecret, options);
               // return access-token used to make requests to /api
@@ -146,6 +146,7 @@ apiV1Routes.use((req, res, next) =>{
         // not authorized
         return res.status(401).send();
       } else {
+        console.log(decoded);
         // authorized, save to request for use in other routes
         req.decoded = decoded;
         next();
@@ -159,7 +160,7 @@ apiV1Routes.use((req, res, next) =>{
 });
 
 apiV1Routes.get("/email2uuids", (req, res) => {
-  var email = req.query.email;
+  var email = req.decoded.email;
   if ("undefined" === email) {
     res.status(422).send();
   }
@@ -176,6 +177,37 @@ apiV1Routes.get("/email2uuids", (req, res) => {
       }
       var data = result.rows[0];
       res.status(200).json(data);
+    });
+  }
+});
+
+apiV1Routes.post("/email2uuids", (req, res) => {
+  var email = req.decoded.email;
+  var peepUUIDs = req.body.peepUUIDs;
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof peepUUID)) {
+    res.status(422).send();
+  }
+  else {
+    // postgrest query to update Peep name
+    var q = "";
+    q += "INSERT INTO peep_uuid_2_info (uuid, name) ";
+    q += "VALUES ('" + peepUUID + "','" + peepName + "') ";
+    q += "ON CONFLICT (uuid) DO UPDATE ";
+    q += "SET name = '" + peepName +"'";
+
+    //INSERT INTO email_2_peep_uuids (email, peep_uuids) "VALUES ('test@widgt.ninja', '{"425e11b3-5844-4626-b05a-219d9751e5ca", "86559e4a-c115-4412-a8b3-b0f54486a18c"}');
+
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        res.status(200).send();
+      }
     });
   }
 });
@@ -301,7 +333,7 @@ function uuid2hatchAWS(peepUnit, callback) {
 }
 
 apiV1Routes.post("/uuid2hatch", (req, res) => {
-  var email = req.body.email;
+  var email = req.decoded.email;
   var peepUUID = req.body.peepUUID;
   var hatchUUID = uuid();
   var endUnixTimestamp = parseInt(req.body.endUnixTimestamp);

@@ -1,0 +1,14 @@
+{
+  "name": "test-email2uuids",
+  "version": "1.0.0",
+  "description": "test REST API for Hatchtrack",
+  "main": "test-uuid2info.js",
+  "scripts": {
+    "test": "echo 'nothing to do'"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.4.1"
+  }
+}
