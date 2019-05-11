@@ -10,7 +10,13 @@ postDataJsonResp(url + "/auth", auth)
 
     getData(url + "/api/v1/email2uuids", accessToken)
       .then(function(data) {
+
         console.log(data);
+
+        postData(url + "/api/v1/email2uuids", accessToken, data)
+          .catch(function(error) {
+            console.error(error);
+          });
       })
       .catch(function(error) {
         console.error(error);
@@ -38,6 +44,28 @@ function postDataJsonResp(url = ``, data = {}) {
       return response.json()
     }
     else {
+      throw "Error: " + response.status.toString();
+    }
+  });
+}
+
+// Returns status code.
+function postData(url = ``, accessToken = ``, data = {}) {
+  return fetch(url, {
+    method: "POST",
+    mode: "cors",
+    cache: "no-cache",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      "access-token": accessToken,
+    },
+    redirect: "follow",
+    referrer: "no-referrer",
+    body: JSON.stringify(data),
+  })
+  .then(function(response) {
+    if (200 !== response.status) {
       throw "Error: " + response.status.toString();
     }
   });

@@ -175,8 +175,10 @@ apiV1Routes.get("/email2uuids", (req, res) => {
         console.error(err);
         res.status(500).send();
       }
-      var data = result.rows[0];
-      res.status(200).json(data);
+      var data = result.rows[0].peep_uuids;
+      var js = { peepUUIDs: data };
+
+      res.status(200).json(js);
     });
   }
 });
@@ -186,19 +188,28 @@ apiV1Routes.post("/email2uuids", (req, res) => {
   var peepUUIDs = req.body.peepUUIDs;
 
   if (("undefined" === typeof email) ||
-      ("undefined" === typeof peepUUID)) {
+      ("undefined" === typeof peepUUIDs)) {
+    console.log(req.body);
+    console.log(email);
+    console.log(peepUUIDs);
     res.status(422).send();
   }
   else {
-    // postgrest query to update Peep name
+
+    var arr = '{';
+    for (i in peepUUIDs) {
+      if (0 != i) {
+        arr += ',';
+      }
+      arr += '"' + peepUUIDs[i] + '"';
+    }
+    arr += '}';
+
     var q = "";
-    q += "INSERT INTO peep_uuid_2_info (uuid, name) ";
-    q += "VALUES ('" + peepUUID + "','" + peepName + "') ";
-    q += "ON CONFLICT (uuid) DO UPDATE ";
-    q += "SET name = '" + peepName +"'";
-
-    //INSERT INTO email_2_peep_uuids (email, peep_uuids) "VALUES ('test@widgt.ninja', '{"425e11b3-5844-4626-b05a-219d9751e5ca", "86559e4a-c115-4412-a8b3-b0f54486a18c"}');
-
+    q += "INSERT INTO email_2_peep_uuids (email, peep_uuids) ";
+    q += "VALUES ('" + email + "','" + arr + "') ";
+    q += "ON CONFLICT (email) DO UPDATE ";
+    q += "SET peep_uuids = '" + arr +"'";
 
     postgresPool.query(q, (err, result) => {
       if (err) {
