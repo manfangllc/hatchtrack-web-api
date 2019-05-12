@@ -48,6 +48,7 @@ const apiV1Routes = express.Router();
 app.use(morgan("combined"));
 app.use(bodyParser.json());
 app.use("/api/v1", apiV1Routes);
+apiV1Routes.routerPath = "/api/v1";
 
 if (typeof process.env.NODE_ENV === "undefined") {
   process.env.NODE_ENV = "production";
@@ -115,11 +116,26 @@ app.post("/auth", (req, res) => {
               // TODO: It would be cool to use the accessToken provided by AWS.
               //var accessToken = result.getAccessToken().getJwtToken();
 
-              const payload = { email:  email };
-              const options = { expiresIn: 60 * 5 };
-              var token = jwt.sign(payload, config.jwtSecret, options);
-              // return access-token used to make requests to /api
-              res.status(200).json({ "accessToken": token });
+              // TODO: Is there a better approach for ensuring the user has
+              // a valid entry in the database?
+              var q = "";
+              q += "INSERT INTO email_2_peep_uuids (email, peep_uuids) ";
+              q += "VALUES ('" + email + "','{}') ";
+              q += "ON CONFLICT (email) DO NOTHING";
+
+              postgresPool.query(q, (err, result) => {
+                if (err) {
+                  console.error(err);
+                  res.status(500).send();
+                }
+                else {
+                  const payload = { email:  email };
+                  const options = { expiresIn: 60 * 5 };
+                  var token = jwt.sign(payload, config.jwtSecret, options);
+                  // return access-token used to make requests to /api
+                  res.status(200).json({ "accessToken": token });
+                }
+              });
           },
 
           onFailure: function(err) {
@@ -159,52 +175,15 @@ apiV1Routes.use((req, res, next) =>{
   }
 });
 
-apiV1Routes.get("/email2uuids", (req, res) => {
+apiV1Routes.post("/user/peep", (req, res) => {
   var email = req.decoded.email;
-  if ("undefined" === email) {
-    res.status(422).send();
-  }
-  else {
-    // postgres query to grab all Peep UUIDs for a given email account
-    var q = "";
-    q += "SELECT peep_uuids FROM email_2_peep_uuids ";
-    q += "WHERE email='" + email + "'";
-
-    postgresPool.query(q, (err, result) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send();
-      }
-      var data = result.rows[0].peep_uuids;
-      var js = { peepUUIDs: data };
-
-      res.status(200).json(js);
-    });
-  }
-});
-
-apiV1Routes.post("/email2uuids", (req, res) => {
-  var email = req.decoded.email;
-  var peepUUIDs = req.body.peepUUIDs;
+  var peepUUID = req.body.peepUUID;
 
   if (("undefined" === typeof email) ||
-      ("undefined" === typeof peepUUIDs)) {
-    console.log(req.body);
-    console.log(email);
-    console.log(peepUUIDs);
+      ("undefined" === typeof peepUUID)) {
     res.status(422).send();
   }
   else {
-
-    var arr = '{';
-    for (i in peepUUIDs) {
-      if (0 != i) {
-        arr += ',';
-      }
-      arr += '"' + peepUUIDs[i] + '"';
-    }
-    arr += '}';
-
     var q = "";
     q += "INSERT INTO email_2_peep_uuids (email, peep_uuids) ";
     q += "VALUES ('" + email + "','" + arr + "') ";
@@ -223,7 +202,102 @@ apiV1Routes.post("/email2uuids", (req, res) => {
   }
 });
 
-apiV1Routes.get("/uuid2info", (req, res) => {
+apiV1Routes.get("/user/peeps", (req, res) => {
+  var email = req.decoded.email;
+
+  if ("undefined" === email) {
+    res.status(422).send();
+  }
+  else {
+    // postgres query to grab all Peep UUIDs for a given email account
+    var q = "";
+    q += "SELECT peep_uuids FROM email_2_peep_uuids ";
+    q += "WHERE email='" + email + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      var data = result.rows[0].peep_uuids;
+      var js = { peepUUIDs: data };
+
+      console.log(data);
+      console.log(js);
+
+      res.status(200).json(js);
+    });
+  }
+});
+
+//apiV1Routes.post("/user/peep", (req, res) => {
+  //var email = req.decoded.email;
+  //var peepUUID = req.body.peepUUID;
+
+  //if (("undefined" === typeof email) ||
+      //("undefined" === typeof peepUUIDs)) {
+    //console.log(req.body);
+    //console.log(email);
+    //console.log(peepUUIDs);
+    //res.status(422).send();
+  //}
+  //else {
+
+    //var arr = '{';
+    //for (i in peepUUIDs) {
+      //if (0 != i) {
+        //arr += ',';
+      //}
+      //arr += '"' + peepUUIDs[i] + '"';
+    //}
+    //arr += '}';
+
+    //var q = "";
+    //q += "INSERT INTO email_2_peep_uuids (email, peep_uuids) ";
+    //q += "VALUES ('" + email + "','" + arr + "') ";
+    //q += "ON CONFLICT (email) DO UPDATE ";
+    //q += "SET peep_uuids = '" + arr +"'";
+
+    //postgresPool.query(q, (err, result) => {
+      //if (err) {
+        //console.error(err);
+        //res.status(500).send();
+      //}
+      //else {
+        //res.status(200).send();
+      //}
+    //});
+  //}
+//});
+
+apiV1Routes.post("/user/peep", (req, res) => {
+  var email = req.decoded.email;
+  var peepUUID = req.body.peepUUID;
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof peepUUID)) {
+    res.status(422).send();
+  }
+  else {
+    var q = "";
+    q += "INSERT INTO email_2_peep_uuids (email, peep_uuids) ";
+    q += "VALUES ('" + email + "','" + arr + "') ";
+    q += "ON CONFLICT (email) DO UPDATE ";
+    q += "SET peep_uuids = '" + arr +"'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        res.status(200).send();
+      }
+    });
+  }
+});
+
+apiV1Routes.get("/peep/info", (req, res) => {
   var uuid = req.query.uuid;
   if ("undefined" === uuid) {
     res.status(422).send();
@@ -247,7 +321,7 @@ apiV1Routes.get("/uuid2info", (req, res) => {
   }
 });
 
-apiV1Routes.post("/uuid2info", (req, res) => {
+apiV1Routes.post("/peep/name", (req, res) => {
   var peepUUID = req.body.peepUUID;
   var peepName = req.body.peepName;
 
@@ -343,7 +417,7 @@ function uuid2hatchAWS(peepUnit, callback) {
   });
 }
 
-apiV1Routes.post("/uuid2hatch", (req, res) => {
+apiV1Routes.post("/peep/hatch", (req, res) => {
   var email = req.decoded.email;
   var peepUUID = req.body.peepUUID;
   var hatchUUID = uuid();
@@ -387,7 +461,7 @@ apiV1Routes.post("/uuid2hatch", (req, res) => {
   }
 });
 
-apiV1Routes.get("/uuid2hatch", (req, res) => {
+apiV1Routes.get("/peep/hatch", (req, res) => {
   var peepUUID = req.query.peepUUID;
 
   if ("undefined" === peepUUID) {
@@ -426,5 +500,18 @@ apiV1Routes.get("/uuid2hatch", (req, res) => {
         }
       }
     });
+  }
+});
+
+//
+app._router.stack.forEach(function(r){
+  if (r.route && r.route.path){
+    console.log(r.route.path);
+  }
+});
+
+apiV1Routes.stack.forEach(function(r){
+  if (r.route && r.route.path){
+    console.log(apiV1Routes.routerPath + r.route.path);
   }
 });
