@@ -7,7 +7,7 @@ postData(url + "/auth", null, auth)
   .then(function(data) {
 
     var accessToken = data.accessToken;
-    var data = { peepUUID : "test123" };
+    var data = { peepUUID : "d1533a96-6ab3-42dd-bbce-c6632c296985" };
 
     postData(url + "/api/v1/user/peep", accessToken, data)
       .catch(function(err) {

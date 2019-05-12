@@ -221,14 +221,29 @@ apiV1Routes.post("/user/peep", (req, res) => {
         res.status(500).send();
       }
       else {
-        res.status(200).send();
+
+        q = "";
+        q += "INSERT INTO peep_uuid_2_info (uuid, name, hatch_uuids) "
+        q += "VALUES ('" + peepUUID + "', 'New Peep', '{}') ";
+        q += "ON CONFLICT (uuid) DO NOTHING";
+
+        postgresPool.query(q, (err, result) => {
+          if (err) {
+            console.error(err);
+            res.status(500).send();
+          }
+          else {
+            res.status(200).send();
+          }
+        });
       }
     });
   }
 });
 
-apiV1Routes.get("/peep/info", (req, res) => {
-  var uuid = req.query.uuid;
+apiV1Routes.get("/peep/name", (req, res) => {
+  var peepUUID = req.query.peepUUID;
+
   if ("undefined" === uuid) {
     res.status(422).send();
   }
@@ -236,7 +251,7 @@ apiV1Routes.get("/peep/info", (req, res) => {
     // postgres query to grab Peep name given a Peep UUID
     var q = "";
     q += "SELECT name FROM peep_uuid_2_info ";
-    q += "WHERE uuid='" + uuid + "'";
+    q += "WHERE uuid='" + peepUUID + "'";
 
     postgresPool.query(q, (err, result) => {
       if (err) {
