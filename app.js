@@ -175,33 +175,6 @@ apiV1Routes.use((req, res, next) =>{
   }
 });
 
-apiV1Routes.post("/user/peep", (req, res) => {
-  var email = req.decoded.email;
-  var peepUUID = req.body.peepUUID;
-
-  if (("undefined" === typeof email) ||
-      ("undefined" === typeof peepUUID)) {
-    res.status(422).send();
-  }
-  else {
-    var q = "";
-    q += "INSERT INTO email_2_peep_uuids (email, peep_uuids) ";
-    q += "VALUES ('" + email + "','" + arr + "') ";
-    q += "ON CONFLICT (email) DO UPDATE ";
-    q += "SET peep_uuids = '" + arr +"'";
-
-    postgresPool.query(q, (err, result) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send();
-      }
-      else {
-        res.status(200).send();
-      }
-    });
-  }
-});
-
 apiV1Routes.get("/user/peeps", (req, res) => {
   var email = req.decoded.email;
 
@@ -222,10 +195,34 @@ apiV1Routes.get("/user/peeps", (req, res) => {
       var data = result.rows[0].peep_uuids;
       var js = { peepUUIDs: data };
 
-      console.log(data);
-      console.log(js);
-
       res.status(200).json(js);
+    });
+  }
+});
+
+apiV1Routes.post("/user/peep", (req, res) => {
+  var email = req.decoded.email;
+  var peepUUID = req.body.peepUUID;
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof peepUUID)) {
+    res.status(422).send();
+  }
+  else {
+    var q = "";
+
+    q += "UPDATE email_2_peep_uuids SET ";
+    q += "peep_uuids = array_append(peep_uuids, '" + peepUUID + "') ";
+    q += "WHERE email = '" + email + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        res.status(200).send();
+      }
     });
   }
 });
