@@ -437,29 +437,29 @@ apiV1Routes.post("/peep/hatch", (req, res) => {
   }
 });
 
-apiV1Routes.get("/peep/hatch", (req, res) => {
-  var peepUUID = req.query.peepUUID;
+apiV1Routes.get("/hatch", (req, res) => {
+  var hatchUUID = req.query.hatchUUID;
 
-  if ("undefined" === peepUUID) {
+  if ("undefined" === hatchUUID) {
     res.status(400).send();
   }
   else {
     var q = "";
-    q += "SELECT ";
-    q += "hatch_uuid, end_unix_timestamp, ";
-    q += "measure_interval_min, temperature_offset_celsius ";
-    q += "FROM peep_uuid_2_hatch WHERE uuid='" + peepUUID + "'";
+    q += "SELECT * FROM hatch_uuid_2_info ";
+    q += "WHERE uuid='" + hatchUUID + "'";
 
-    postgresPool.query({text: q, rowMode: 'array'}, (err, result) => {
+    //postgresPool.query({text: q, rowMode: 'array'}, (err, result) => {
+    postgresPool.query(q, (err, result) => {
       if (err) {
         console.error(err);
         res.status(500).send();
       }
       else {
+        //var data = result.rows[0];
         var data = result.rows[0];
+
         if ("undefined" === typeof data) {
           res.status(200).json({
-            "hatchUUID": "n/a",
             "endUnixTimestamp": 0,
             "measureIntervalMin": 15,
             "temperatureOffsetCelsius": 0,
@@ -467,11 +467,10 @@ apiV1Routes.get("/peep/hatch", (req, res) => {
         }
         else {
           res.status(200).json({
-            "hatchUUID": data[0],
              // force int conversion, BIGINT is returned as string
-            "endUnixTimestamp": parseInt(data[1]),
-            "measureIntervalMin": parseInt(data[2]),
-            "temperatureOffsetCelsius": parseInt(data[3]),
+            "endUnixTimestamp": parseInt(data.end_unix_timestamp),
+            "measureIntervalMin": data.measure_interval_min,
+            "temperatureOffsetCelsius": data.temperature_offset_celsius,
           });
         }
       }
