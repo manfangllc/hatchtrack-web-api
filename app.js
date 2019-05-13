@@ -244,7 +244,7 @@ apiV1Routes.post("/user/peep", (req, res) => {
 apiV1Routes.get("/peep/name", (req, res) => {
   var peepUUID = req.query.peepUUID;
 
-  if ("undefined" === uuid) {
+  if ("undefined" === peepUUID) {
     res.status(422).send();
   }
   else {
@@ -259,8 +259,9 @@ apiV1Routes.get("/peep/name", (req, res) => {
         res.status(500).send();
       }
       else {
-        var data = result.rows[0];
-        res.status(200).json(data);
+        var data = result.rows[0].name;
+
+        res.status(200).json({peepName : data});
       }
     });
   }
@@ -277,10 +278,8 @@ apiV1Routes.post("/peep/name", (req, res) => {
   else {
     // postgrest query to update Peep name
     var q = "";
-    q += "INSERT INTO peep_uuid_2_info (uuid, name) ";
-    q += "VALUES ('" + peepUUID + "','" + peepName + "') ";
-    q += "ON CONFLICT (uuid) DO UPDATE ";
-    q += "SET name = '" + peepName +"'";
+    q += "UPDATE peep_uuid_2_info SET name = '" + peepName + "' "
+    q += "WHERE uuid = '" + peepUUID + "'";
 
     postgresPool.query(q, (err, result) => {
       if (err) {
