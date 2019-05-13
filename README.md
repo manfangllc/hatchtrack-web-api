@@ -12,10 +12,10 @@ POST /api/v1/user/peep
 GET /api/v1/peep/name
 POST /api/v1/peep/name
 GET /api/v1/peep
+GET /api/v1/hatch
 
 ## What still needs to be developed...
 
 DELETE /api/v1/user/peep
-
 POST /api/v1/peep/hatch
-GET /api/v1/hatch
+
