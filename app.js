@@ -241,6 +241,38 @@ apiV1Routes.post("/user/peep", (req, res) => {
   }
 });
 
+apiV1Routes.get("/peep", (req, res) => {
+  var peepUUID = req.query.peepUUID;
+
+  if ("undefined" === peepUUID) {
+    res.status(422).send();
+  }
+  else {
+    // postgres query to grab Peep name given a Peep UUID
+    var q = "";
+    q += "SELECT * FROM peep_uuid_2_info ";
+    q += "WHERE uuid='" + peepUUID + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var name = result.rows[0].name;
+        var hatches = result.rows[0].hatch_uuids;
+
+        var js = {
+          peepName : name,
+          hatchUUIDs : hatches
+        };
+
+        res.status(200).json(js);
+      }
+    });
+  }
+});
+
 apiV1Routes.get("/peep/name", (req, res) => {
   var peepUUID = req.query.peepUUID;
 
