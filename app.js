@@ -325,23 +325,33 @@ apiV1Routes.post("/peep/name", (req, res) => {
   }
 });
 
-function uuid2hatchPostgres(peepUnit, callback) {
+function peepUUID2InfoAppendPostgres(peepUnit, callback) {
   var q = "";
-  q += "INSERT INTO peep_uuid_2_hatch "
-  q += "(uuid, hatch_uuid, end_unix_timestamp, "
+  q += "UPDATE peep_uuid_2_info SET "
+  q += "hatch_uuids = array_append(hatch_uuids,'" + peepUnit.hatchUUID + "') "
+  q += "WHERE uuid = '" + peepUnit.uuid + "'";
+
+  postgresPool.query(q, (err, result) => {
+    if (err) {
+      console.error(err);
+      throw 500;
+    }
+    else {
+      callback(peepUnit);
+    }
+  });
+}
+
+function hatchUUID2InfoPostgres(peepUnit, callback) {
+  var q = "";
+  q += "INSERT INTO hatch_uuid_2_info "
+  q += "(uuid, end_unix_timestamp, "
   q += "measure_interval_min, temperature_offset_celsius) ";
   q += "VALUES ('";
-  q += peepUnit.uuid + "','"; // str
   q += peepUnit.hatchUUID + "',"; // str
   q += peepUnit.endUnixTimestamp + ","; // int
   q += peepUnit.measureIntervalMin + ","; // int
   q += peepUnit.temperatureOffsetCelsius + ") "; // int
-  q += "ON CONFLICT (uuid) DO UPDATE ";
-  q += "SET "
-  q += "hatch_uuid=EXCLUDED.hatch_uuid, ";
-  q += "end_unix_timestamp=EXCLUDED.end_unix_timestamp, ";
-  q += "measure_interval_min=EXCLUDED.measure_interval_min, ";
-  q += "temperature_offset_celsius=EXCLUDED.temperature_offset_celsius";
 
   postgresPool.query(q, (err, result) => {
     if (err) {
@@ -355,7 +365,8 @@ function uuid2hatchPostgres(peepUnit, callback) {
 }
 
 function uuid2hatchAWS(peepUnit, callback) {
-  var shadow = {"state":
+  var shadow =
+  {"state":
     {"desired":
       { "hatchUUID": peepUnit.hatchUUID,
         "endUnixTimestamp": peepUnit.endUnixTimestamp,
@@ -425,8 +436,10 @@ apiV1Routes.post("/peep/hatch", (req, res) => {
 
     try {
       uuid2hatchAWS(peepUnit, (peepUnit) => {
-        uuid2hatchPostgres(peepUnit, (peepUnit) => {
-          res.status(200).send();
+        hatchUUID2InfoPostgres(peepUnit, (peepUnit) => {
+          peepUUID2InfoAppendPostgres(peepUnit, (peepUnit) => {
+            res.status(200).send();
+          });
         });
       });
     }
