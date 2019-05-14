@@ -48,6 +48,7 @@ const apiV1Routes = express.Router();
 app.use(morgan("combined"));
 app.use(bodyParser.json());
 app.use("/api/v1", apiV1Routes);
+apiV1Routes.routerPath = "/api/v1";
 
 if (typeof process.env.NODE_ENV === "undefined") {
   process.env.NODE_ENV = "production";
@@ -115,11 +116,26 @@ app.post("/auth", (req, res) => {
               // TODO: It would be cool to use the accessToken provided by AWS.
               //var accessToken = result.getAccessToken().getJwtToken();
 
-              const payload = { email:  email };
-              const options = { expiresIn: 60 * 5 };
-              var token = jwt.sign(payload, config.jwtSecret, options);
-              // return access-token used to make requests to /api
-              res.status(200).json({ "accessToken": token });
+              // TODO: Is there a better approach for ensuring the user has
+              // a valid entry in the database?
+              var q = "";
+              q += "INSERT INTO email_2_peep_uuids (email, peep_uuids) ";
+              q += "VALUES ('" + email + "','{}') ";
+              q += "ON CONFLICT (email) DO NOTHING";
+
+              postgresPool.query(q, (err, result) => {
+                if (err) {
+                  console.error(err);
+                  res.status(500).send();
+                }
+                else {
+                  const payload = { email:  email };
+                  const options = { expiresIn: 60 * 5 };
+                  var token = jwt.sign(payload, config.jwtSecret, options);
+                  // return Access-Token used to make requests to /api
+                  res.status(200).json({ "accessToken": token });
+                }
+              });
           },
 
           onFailure: function(err) {
@@ -159,8 +175,9 @@ apiV1Routes.use((req, res, next) =>{
   }
 });
 
-apiV1Routes.get("/email2uuids", (req, res) => {
+apiV1Routes.get("/user/peeps", (req, res) => {
   var email = req.decoded.email;
+
   if ("undefined" === email) {
     res.status(422).send();
   }
@@ -183,33 +200,19 @@ apiV1Routes.get("/email2uuids", (req, res) => {
   }
 });
 
-apiV1Routes.post("/email2uuids", (req, res) => {
+apiV1Routes.delete("/user/peep", (req, res) => {
   var email = req.decoded.email;
-  var peepUUIDs = req.body.peepUUIDs;
+  var peepUUID = req.query.peepUUID;
 
   if (("undefined" === typeof email) ||
-      ("undefined" === typeof peepUUIDs)) {
-    console.log(req.body);
-    console.log(email);
-    console.log(peepUUIDs);
+      ("undefined" === typeof peepUUID)) {
     res.status(422).send();
   }
   else {
-
-    var arr = '{';
-    for (i in peepUUIDs) {
-      if (0 != i) {
-        arr += ',';
-      }
-      arr += '"' + peepUUIDs[i] + '"';
-    }
-    arr += '}';
-
     var q = "";
-    q += "INSERT INTO email_2_peep_uuids (email, peep_uuids) ";
-    q += "VALUES ('" + email + "','" + arr + "') ";
-    q += "ON CONFLICT (email) DO UPDATE ";
-    q += "SET peep_uuids = '" + arr +"'";
+    q += "UPDATE email_2_peep_uuids SET ";
+    q += "peep_uuids = array_remove(peep_uuids, '" + peepUUID + "') ";
+    q += "WHERE email = '" + email + "'";
 
     postgresPool.query(q, (err, result) => {
       if (err) {
@@ -223,16 +226,19 @@ apiV1Routes.post("/email2uuids", (req, res) => {
   }
 });
 
-apiV1Routes.get("/uuid2info", (req, res) => {
-  var uuid = req.query.uuid;
-  if ("undefined" === uuid) {
+apiV1Routes.post("/user/peep", (req, res) => {
+  var email = req.decoded.email;
+  var peepUUID = req.body.peepUUID;
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof peepUUID)) {
     res.status(422).send();
   }
   else {
-    // postgres query to grab Peep name given a Peep UUID
     var q = "";
-    q += "SELECT name FROM peep_uuid_2_info ";
-    q += "WHERE uuid='" + uuid + "'";
+    q += "UPDATE email_2_peep_uuids SET ";
+    q += "peep_uuids = array_append(peep_uuids, '" + peepUUID + "') ";
+    q += "WHERE email = '" + email + "'";
 
     postgresPool.query(q, (err, result) => {
       if (err) {
@@ -240,14 +246,85 @@ apiV1Routes.get("/uuid2info", (req, res) => {
         res.status(500).send();
       }
       else {
-        var data = result.rows[0];
-        res.status(200).json(data);
+
+        q = "";
+        q += "INSERT INTO peep_uuid_2_info (uuid, name, hatch_uuids) "
+        q += "VALUES ('" + peepUUID + "', 'New Peep', '{}') ";
+        q += "ON CONFLICT (uuid) DO NOTHING";
+
+        postgresPool.query(q, (err, result) => {
+          if (err) {
+            console.error(err);
+            res.status(500).send();
+          }
+          else {
+            res.status(200).send();
+          }
+        });
       }
     });
   }
 });
 
-apiV1Routes.post("/uuid2info", (req, res) => {
+apiV1Routes.get("/peep", (req, res) => {
+  var peepUUID = req.query.peepUUID;
+
+  if ("undefined" === peepUUID) {
+    res.status(422).send();
+  }
+  else {
+    // postgres query to grab Peep name given a Peep UUID
+    var q = "";
+    q += "SELECT * FROM peep_uuid_2_info ";
+    q += "WHERE uuid='" + peepUUID + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var name = result.rows[0].name;
+        var hatches = result.rows[0].hatch_uuids;
+
+        var js = {
+          peepName : name,
+          hatchUUIDs : hatches
+        };
+
+        res.status(200).json(js);
+      }
+    });
+  }
+});
+
+apiV1Routes.get("/peep/name", (req, res) => {
+  var peepUUID = req.query.peepUUID;
+
+  if ("undefined" === peepUUID) {
+    res.status(422).send();
+  }
+  else {
+    // postgres query to grab Peep name given a Peep UUID
+    var q = "";
+    q += "SELECT name FROM peep_uuid_2_info ";
+    q += "WHERE uuid='" + peepUUID + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var data = result.rows[0].name;
+
+        res.status(200).json({peepName : data});
+      }
+    });
+  }
+});
+
+apiV1Routes.post("/peep/name", (req, res) => {
   var peepUUID = req.body.peepUUID;
   var peepName = req.body.peepName;
 
@@ -258,10 +335,8 @@ apiV1Routes.post("/uuid2info", (req, res) => {
   else {
     // postgrest query to update Peep name
     var q = "";
-    q += "INSERT INTO peep_uuid_2_info (uuid, name) ";
-    q += "VALUES ('" + peepUUID + "','" + peepName + "') ";
-    q += "ON CONFLICT (uuid) DO UPDATE ";
-    q += "SET name = '" + peepName +"'";
+    q += "UPDATE peep_uuid_2_info SET name = '" + peepName + "' "
+    q += "WHERE uuid = '" + peepUUID + "'";
 
     postgresPool.query(q, (err, result) => {
       if (err) {
@@ -275,23 +350,33 @@ apiV1Routes.post("/uuid2info", (req, res) => {
   }
 });
 
-function uuid2hatchPostgres(peepUnit, callback) {
+function peepUUID2InfoAppendPostgres(peepUnit, callback) {
   var q = "";
-  q += "INSERT INTO peep_uuid_2_hatch "
-  q += "(uuid, hatch_uuid, end_unix_timestamp, "
+  q += "UPDATE peep_uuid_2_info SET "
+  q += "hatch_uuids = array_append(hatch_uuids,'" + peepUnit.hatchUUID + "') "
+  q += "WHERE uuid = '" + peepUnit.uuid + "'";
+
+  postgresPool.query(q, (err, result) => {
+    if (err) {
+      console.error(err);
+      throw 500;
+    }
+    else {
+      callback(peepUnit);
+    }
+  });
+}
+
+function hatchUUID2InfoPostgres(peepUnit, callback) {
+  var q = "";
+  q += "INSERT INTO hatch_uuid_2_info "
+  q += "(uuid, end_unix_timestamp, "
   q += "measure_interval_min, temperature_offset_celsius) ";
   q += "VALUES ('";
-  q += peepUnit.uuid + "','"; // str
   q += peepUnit.hatchUUID + "',"; // str
   q += peepUnit.endUnixTimestamp + ","; // int
   q += peepUnit.measureIntervalMin + ","; // int
   q += peepUnit.temperatureOffsetCelsius + ") "; // int
-  q += "ON CONFLICT (uuid) DO UPDATE ";
-  q += "SET "
-  q += "hatch_uuid=EXCLUDED.hatch_uuid, ";
-  q += "end_unix_timestamp=EXCLUDED.end_unix_timestamp, ";
-  q += "measure_interval_min=EXCLUDED.measure_interval_min, ";
-  q += "temperature_offset_celsius=EXCLUDED.temperature_offset_celsius";
 
   postgresPool.query(q, (err, result) => {
     if (err) {
@@ -305,7 +390,8 @@ function uuid2hatchPostgres(peepUnit, callback) {
 }
 
 function uuid2hatchAWS(peepUnit, callback) {
-  var shadow = {"state":
+  var shadow =
+  {"state":
     {"desired":
       { "hatchUUID": peepUnit.hatchUUID,
         "endUnixTimestamp": peepUnit.endUnixTimestamp,
@@ -343,7 +429,37 @@ function uuid2hatchAWS(peepUnit, callback) {
   });
 }
 
-apiV1Routes.post("/uuid2hatch", (req, res) => {
+apiV1Routes.get("/peep/hatches", (req, res) => {
+  var peepUUID = req.query.peepUUID;
+
+  if ("undefined" === peepUUID) {
+    res.status(422).send();
+  }
+  else {
+    // postgres query to grab Peep name given a Peep UUID
+    var q = "";
+    q += "SELECT hatch_uuids FROM peep_uuid_2_info ";
+    q += "WHERE uuid='" + peepUUID + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var hatches = result.rows[0].hatch_uuids;
+
+        var js = {
+          hatchUUIDs : hatches
+        };
+
+        res.status(200).json(js);
+      }
+    });
+  }
+});
+
+apiV1Routes.post("/peep/hatch", (req, res) => {
   var email = req.decoded.email;
   var peepUUID = req.body.peepUUID;
   var hatchUUID = uuid();
@@ -375,8 +491,10 @@ apiV1Routes.post("/uuid2hatch", (req, res) => {
 
     try {
       uuid2hatchAWS(peepUnit, (peepUnit) => {
-        uuid2hatchPostgres(peepUnit, (peepUnit) => {
-          res.status(200).send();
+        hatchUUID2InfoPostgres(peepUnit, (peepUnit) => {
+          peepUUID2InfoAppendPostgres(peepUnit, (peepUnit) => {
+            res.status(200).send();
+          });
         });
       });
     }
@@ -387,29 +505,29 @@ apiV1Routes.post("/uuid2hatch", (req, res) => {
   }
 });
 
-apiV1Routes.get("/uuid2hatch", (req, res) => {
-  var peepUUID = req.query.peepUUID;
+apiV1Routes.get("/hatch", (req, res) => {
+  var hatchUUID = req.query.hatchUUID;
 
-  if ("undefined" === peepUUID) {
+  if ("undefined" === hatchUUID) {
     res.status(400).send();
   }
   else {
     var q = "";
-    q += "SELECT ";
-    q += "hatch_uuid, end_unix_timestamp, ";
-    q += "measure_interval_min, temperature_offset_celsius ";
-    q += "FROM peep_uuid_2_hatch WHERE uuid='" + peepUUID + "'";
+    q += "SELECT * FROM hatch_uuid_2_info ";
+    q += "WHERE uuid='" + hatchUUID + "'";
 
-    postgresPool.query({text: q, rowMode: 'array'}, (err, result) => {
+    //postgresPool.query({text: q, rowMode: 'array'}, (err, result) => {
+    postgresPool.query(q, (err, result) => {
       if (err) {
         console.error(err);
         res.status(500).send();
       }
       else {
+        //var data = result.rows[0];
         var data = result.rows[0];
+
         if ("undefined" === typeof data) {
           res.status(200).json({
-            "hatchUUID": "n/a",
             "endUnixTimestamp": 0,
             "measureIntervalMin": 15,
             "temperatureOffsetCelsius": 0,
@@ -417,14 +535,26 @@ apiV1Routes.get("/uuid2hatch", (req, res) => {
         }
         else {
           res.status(200).json({
-            "hatchUUID": data[0],
              // force int conversion, BIGINT is returned as string
-            "endUnixTimestamp": parseInt(data[1]),
-            "measureIntervalMin": parseInt(data[2]),
-            "temperatureOffsetCelsius": parseInt(data[3]),
+            "endUnixTimestamp": parseInt(data.end_unix_timestamp),
+            "measureIntervalMin": data.measure_interval_min,
+            "temperatureOffsetCelsius": data.temperature_offset_celsius,
           });
         }
       }
     });
+  }
+});
+
+//
+app._router.stack.forEach(function(r){
+  if (r.route && r.route.path){
+    console.log(r.route.path);
+  }
+});
+
+apiV1Routes.stack.forEach(function(r){
+  if (r.route && r.route.path){
+    console.log(apiV1Routes.routerPath + r.route.path);
   }
 });
