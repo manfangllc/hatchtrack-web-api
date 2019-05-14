@@ -152,7 +152,7 @@ app.post("/auth", (req, res) => {
 apiV1Routes.use((req, res, next) =>{
   // all routes with "/api" will start here for authentication
   // check header for the token
-  var token = req.headers["Access-Token"];
+  var token = req.headers["access-token"];
 
   // decode token
   if (token) {
@@ -428,6 +428,36 @@ function uuid2hatchAWS(peepUnit, callback) {
     }
   });
 }
+
+apiV1Routes.get("/peep/hatches", (req, res) => {
+  var peepUUID = req.query.peepUUID;
+
+  if ("undefined" === peepUUID) {
+    res.status(422).send();
+  }
+  else {
+    // postgres query to grab Peep name given a Peep UUID
+    var q = "";
+    q += "SELECT hatch_uuids FROM peep_uuid_2_info ";
+    q += "WHERE uuid='" + peepUUID + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var hatches = result.rows[0].hatch_uuids;
+
+        var js = {
+          hatchUUIDs : hatches
+        };
+
+        res.status(200).json(js);
+      }
+    });
+  }
+});
 
 apiV1Routes.post("/peep/hatch", (req, res) => {
   var email = req.decoded.email;

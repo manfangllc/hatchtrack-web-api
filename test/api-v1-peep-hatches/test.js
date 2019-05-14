@@ -2,12 +2,13 @@ const fetch = require('node-fetch');
 
 const url = "http://localhost:18888";
 const auth = {email: "test@widgt.ninja", password: "Test1337$"};
+const peepUUID = "d1533a96-6ab3-42dd-bbce-c6632c296985";
 
 postData(url + "/auth", null, auth)
   .then(function(data) {
     var accessToken = data.accessToken;
 
-    getData(url + "/api/v1/user/peeps", accessToken)
+    getData(url + "/api/v1/peep/hatches?peepUUID=" + peepUUID, accessToken)
       .then(function(data) {
         console.log(data);
       })
