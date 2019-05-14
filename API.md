@@ -29,9 +29,11 @@ Get user's registered Peeps.
 ### Example
 Output
 ```javascript
-{ peepUUIDs:
+{
+  peepUUIDs:
    [ '425e11b3-5844-4626-b05a-219d9751e5ca',
-     '86559e4a-c115-4412-a8b3-b0f54486a18c' ] }
+     '86559e4a-c115-4412-a8b3-b0f54486a18c' ]
+}
 ```
 ## POST /api/v1/user/peep
 Register a new Peep with a user's account.
