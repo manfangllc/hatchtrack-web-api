@@ -546,15 +546,15 @@ apiV1Routes.get("/hatch", (req, res) => {
   }
 });
 
-//
-app._router.stack.forEach(function(r){
-  if (r.route && r.route.path){
-    console.log(r.route.path);
-  }
-});
+// Print out all routes for debugging/development.
+//app._router.stack.forEach(function(r){
+  //if (r.route && r.route.path){
+    //console.log(r.route.path);
+  //}
+//});
 
-apiV1Routes.stack.forEach(function(r){
-  if (r.route && r.route.path){
-    console.log(apiV1Routes.routerPath + r.route.path);
-  }
-});
+//apiV1Routes.stack.forEach(function(r){
+  //if (r.route && r.route.path){
+    //console.log(apiV1Routes.routerPath + r.route.path);
+  //}
+//});
