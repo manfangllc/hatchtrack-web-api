@@ -132,7 +132,7 @@ app.post("/auth", (req, res) => {
                   const payload = { email:  email };
                   const options = { expiresIn: 60 * 5 };
                   var token = jwt.sign(payload, config.jwtSecret, options);
-                  // return access-token used to make requests to /api
+                  // return Access-Token used to make requests to /api
                   res.status(200).json({ "accessToken": token });
                 }
               });
@@ -152,7 +152,7 @@ app.post("/auth", (req, res) => {
 apiV1Routes.use((req, res, next) =>{
   // all routes with "/api" will start here for authentication
   // check header for the token
-  var token = req.headers["access-token"];
+  var token = req.headers["Access-Token"];
 
   // decode token
   if (token) {

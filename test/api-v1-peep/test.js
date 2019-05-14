@@ -32,7 +32,7 @@ function postData(url = ``, accessToken = null, data = {}) {
   else {
     var headers = {
       "Content-Type": "application/json",
-      "access-token": accessToken,
+      "Access-Token": accessToken,
     };
   }
 
@@ -66,7 +66,7 @@ function getData(url = ``, accessToken = ``) {
     credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
-      "access-token": accessToken,
+      "Access-Token": accessToken,
     },
     redirect: "follow",
     referrer: "no-referrer",
