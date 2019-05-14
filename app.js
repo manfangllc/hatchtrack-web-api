@@ -200,6 +200,32 @@ apiV1Routes.get("/user/peeps", (req, res) => {
   }
 });
 
+apiV1Routes.delete("/user/peep", (req, res) => {
+  var email = req.decoded.email;
+  var peepUUID = req.query.peepUUID;
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof peepUUID)) {
+    res.status(422).send();
+  }
+  else {
+    var q = "";
+    q += "UPDATE email_2_peep_uuids SET ";
+    q += "peep_uuids = array_remove(peep_uuids, '" + peepUUID + "') ";
+    q += "WHERE email = '" + email + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        res.status(200).send();
+      }
+    });
+  }
+});
+
 apiV1Routes.post("/user/peep", (req, res) => {
   var email = req.decoded.email;
   var peepUUID = req.body.peepUUID;
@@ -210,7 +236,6 @@ apiV1Routes.post("/user/peep", (req, res) => {
   }
   else {
     var q = "";
-
     q += "UPDATE email_2_peep_uuids SET ";
     q += "peep_uuids = array_append(peep_uuids, '" + peepUUID + "') ";
     q += "WHERE email = '" + email + "'";

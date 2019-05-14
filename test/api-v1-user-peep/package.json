@@ -2,7 +2,7 @@
   "name": "test",
   "version": "1.0.0",
   "description": "test REST API for Hatchtrack",
-  "main": "test-uuid2info.js",
+  "main": "test.js",
   "scripts": {
     "test": "echo 'nothing to do'"
   },

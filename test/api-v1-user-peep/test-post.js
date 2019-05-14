@@ -8,11 +8,9 @@ postData(url + "/auth", null, auth)
   .then(function(data) {
 
     var accessToken = data.accessToken;
+    var data = { peepUUID : peepUUID };
 
-    getData(url + "/api/v1/peep?peepUUID=" + peepUUID, accessToken)
-      .then(function(data) {
-        console.log(data);
-      })
+    postData(url + "/api/v1/user/peep", accessToken, data)
       .catch(function(err) {
         console.error(err);
       });

@@ -2,14 +2,14 @@ const fetch = require('node-fetch');
 
 const url = "http://localhost:18888";
 const auth = {email: "test@widgt.ninja", password: "Test1337$"};
+const peepUUID = "d1533a96-6ab3-42dd-bbce-c6632c296985";
 
 postData(url + "/auth", null, auth)
   .then(function(data) {
 
     var accessToken = data.accessToken;
-    var data = { peepUUID : "d1533a96-6ab3-42dd-bbce-c6632c296985" };
 
-    postData(url + "/api/v1/user/peep", accessToken, data)
+    deleteData(url + "/api/v1/user/peep?peepUUID=" + peepUUID, accessToken)
       .catch(function(err) {
         console.error(err);
       });
@@ -71,6 +71,31 @@ function getData(url = ``, accessToken = ``) {
   .then(function(response) {
     if (200 === response.status) {
       return response.json()
+    }
+    else {
+      throw "Error: " + response.status.toString();
+    }
+  });
+}
+
+function deleteData(url = ``, accessToken = ``) {
+  return fetch(url, {
+    method: "DELETE",
+    mode: "cors",
+    cache: "no-cache",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      "access-token": accessToken,
+    },
+    redirect: "follow",
+    referrer: "no-referrer",
+  })
+  .then(function(response) {
+    if (200 === response.status) {
+      return ((0 != response.headers.get("content-length"))) ?
+             response.json() :
+             { };
     }
     else {
       throw "Error: " + response.status.toString();
