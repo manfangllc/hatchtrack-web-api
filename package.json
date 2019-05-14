@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "NODE_ENV=development node ./app.js"
+    "production": "NODE_ENV=production node ./app.js"
   },
   "author": "",
   "license": "ISC",

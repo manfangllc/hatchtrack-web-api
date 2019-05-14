@@ -1,22 +1,40 @@
 # hatchtrack-web-api
 
 ## About
-
 A RESTful web API for Hatchtrack web services written using Node JS.
 
-## What is tested and known to work...
+## Documentation
+The API is documented in the [API.md](API.md) file.
 
-POST /auth
-GET /api/v1/user/peeps
-POST /api/v1/user/peep
-GET /api/v1/peep/name
-POST /api/v1/peep/name
-GET /api/v1/peep
-GET /api/v1/hatch
-POST /api/v1/peep/hatch
+## Preamble
+Ensure that `node` and `npm` are installed and able to be executed. Currently,
+Node v10.x.x and its associated version of NPM are the only versions supported.
+Things may work with older or newer versions, but your milage may vary.
 
-## What still needs to be developed...
+## Building
+Cloning the repository and running `npm install` should install all of the
+dependencies for this project.
 
-DELETE /api/v1/user/peep
+## Running
+Unless you are deploying this on the production server that has all of the
+required SSL certificates on it, you should run this server in test mode.
+```
+$ npm run-script test
 
+> hatchtrack-web-api@1.0.0 test /home/ubuntu/hatchtrack-web-api
+> NODE_ENV=development node ./app.js
 
+listening on port 18888
+
+```
+
+When deploying this server on a target with the SSL scripts loaded onto it, run
+it in production mode.
+```
+$ npm run-script production
+
+> hatchtrack-web-api@1.0.0 production /home/ubuntu/hatchtrack-web-api
+> node ./app.js
+
+listening on port 18888 (SSL enabled)
+```
