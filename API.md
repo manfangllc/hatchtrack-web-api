@@ -100,9 +100,9 @@ Output
 ## POST /api/v1/peep/hatch
 Register new Hatch for a given Peep.
 ### Input
-**peepUUID**: The 128 bit UUID of the Peep.
-**endUnixTimestamp**: The UTC Unix timestamp value at which the Peep will stop a given hatch.
-**measureIntervalMin**: Period in minutes which a Peep will perform an environmental reading.
+**peepUUID**: The 128 bit UUID of the Peep.  
+**endUnixTimestamp**: The UTC Unix timestamp value at which the Peep will stop a given hatch.  
+**measureIntervalMin**: Period in minutes which a Peep will perform an environmental reading.  
 **temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep.
 ### Example
 Input
@@ -120,8 +120,8 @@ Get information for a given Hatch.
 ### Input
 **hatchUUID**: The 128 bit UUID of the Hatch.
 ### Output
-**endUnixTimestamp**: The UTC Unix timestamp value at which the Hatch will end.
-**measureIntervalMin**: Period in minutes which a Peep will perform an environmental reading for the Hatch.
+**endUnixTimestamp**: The UTC Unix timestamp value at which the Hatch will end.  
+**measureIntervalMin**: Period in minutes which a Peep will perform an environmental reading for the Hatch.  
 **temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep for this Hatch.
 ### Example
 Input
