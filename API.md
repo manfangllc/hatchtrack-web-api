@@ -67,10 +67,8 @@ Get the user defined name for a given Peep.
 **peepName**: User given name for the Peep.
 ### Example
 Input
-```javascript
-{
-    "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985"
-}
+```
+/api/v1/peep/name?peepUUID=d1533a96-6ab3-42dd-bbce-c6632c296985
 ```
 Output
 ```javascript
@@ -87,10 +85,8 @@ Get all Hatches registered for a given Peep.
 **hatchUUIDs**: Array of 128 bit UUIDs correlating to all hatches registered with a given Peep.
 ### Example
 Input
-```javascript
-{
-    "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985"
-}
+```
+/api/v1/peep/hatches?peepUUID=d1533a96-6ab3-42dd-bbce-c6632c296985
 ```
 Output
 ```javascript
@@ -127,10 +123,8 @@ Get information for a given Hatch.
 **temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep for this Hatch.
 ### Example
 Input
-```javascript
-{
-  "hatchUUID" : "50188540-75b7-11e9-82e1-db44545430e3"  
-}
+```
+/api/v1/hatch?hatchUUID=50188540-75b7-11e9-82e1-db44545430e3
 ```
 Output
 ```javascript
