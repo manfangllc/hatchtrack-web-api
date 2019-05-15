@@ -77,6 +77,20 @@ Output
 }
 ```
 
+## POST /api/v1/peep/name
+Set the user defined name for a given Peep.
+### Input
+**peepUUID**: The 128 bit UUID of the Peep.
+**peepName**: The name to assign to the specified Peep.
+### Example
+Input
+```javascript
+{
+    "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985"
+    "peepName": "My Peep"
+}
+```
+
 ## GET /api/v1/peep/hatches
 Get all Hatches registered for a given Peep.
 ### Input
