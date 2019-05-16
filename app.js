@@ -370,10 +370,11 @@ function peepUUID2InfoAppendPostgres(peepUnit, callback) {
 function hatchUUID2InfoPostgres(peepUnit, callback) {
   var q = "";
   q += "INSERT INTO hatch_uuid_2_info "
-  q += "(uuid, end_unix_timestamp, "
+  q += "(uuid, start_unix_timestamp, end_unix_timestamp, "
   q += "measure_interval_min, temperature_offset_celsius) ";
   q += "VALUES ('";
   q += peepUnit.hatchUUID + "',"; // str
+  q += peepUnit.startUnixTimestamp + ","; // int
   q += peepUnit.endUnixTimestamp + ","; // int
   q += peepUnit.measureIntervalMin + ","; // int
   q += peepUnit.temperatureOffsetCelsius + ") "; // int
@@ -463,6 +464,7 @@ apiV1Routes.post("/peep/hatch", (req, res) => {
   var email = req.decoded.email;
   var peepUUID = req.body.peepUUID;
   var hatchUUID = uuid();
+  var startUnixTimestamp = Date.now() / 1000;
   var endUnixTimestamp = parseInt(req.body.endUnixTimestamp);
   var measureIntervalMin = parseInt(req.body.measureIntervalMin);
   var temperatureOffsetCelsius = parseInt(req.body.temperatureOffsetCelsius);
@@ -484,6 +486,7 @@ apiV1Routes.post("/peep/hatch", (req, res) => {
       email: email,
       uuid: peepUUID,
       hatchUUID: hatchUUID,
+      startUnixTimestamp: startUnixTimestamp,
       endUnixTimestamp: endUnixTimestamp,
       measureIntervalMin: measureIntervalMin,
       temperatureOffsetCelsius: temperatureOffsetCelsius,
@@ -528,6 +531,7 @@ apiV1Routes.get("/hatch", (req, res) => {
 
         if ("undefined" === typeof data) {
           res.status(200).json({
+            "startUnixTimestamp": 0,
             "endUnixTimestamp": 0,
             "measureIntervalMin": 15,
             "temperatureOffsetCelsius": 0,
@@ -536,6 +540,7 @@ apiV1Routes.get("/hatch", (req, res) => {
         else {
           res.status(200).json({
              // force int conversion, BIGINT is returned as string
+            "startUnixTimestamp": parseInt(data.start_unix_timestamp),
             "endUnixTimestamp": parseInt(data.end_unix_timestamp),
             "measureIntervalMin": data.measure_interval_min,
             "temperatureOffsetCelsius": data.temperature_offset_celsius,

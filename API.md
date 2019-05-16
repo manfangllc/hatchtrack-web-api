@@ -132,6 +132,7 @@ Get information for a given Hatch.
 ### Input
 **hatchUUID**: The 128 bit UUID of the Hatch.
 ### Output
+**startUnixTimestamp**: The UTC Unix timestamp value at which the Hatch was registered.  
 **endUnixTimestamp**: The UTC Unix timestamp value at which the Hatch will end.  
 **measureIntervalMin**: Period in minutes which a Peep will perform an environmental reading for the Hatch.  
 **temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep for this Hatch.
@@ -143,6 +144,8 @@ Input
 Output
 ```javascript
 {
+  startUnixTimestamp: 1558042258,
+  endUnixTimestamp: 2147483647,
   endUnixTimestamp: 2147483647,
   measureIntervalMin: 15,
   temperatureOffsetCelsius: 0
