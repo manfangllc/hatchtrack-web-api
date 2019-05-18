@@ -329,9 +329,14 @@ apiV1Routes.get("/peep/name", (req, res) => {
         res.status(500).send();
       }
       else {
-        var data = result.rows[0].name;
-
-        res.status(200).json({peepName : data});
+        if ("undefined" !== result.rows[0]) {
+          var data = result.rows[0].name;
+          res.status(200).json({peepName : data});
+        }
+        else {
+          console.error(result);
+          res.status(500).send();
+        }
       }
     });
   }
