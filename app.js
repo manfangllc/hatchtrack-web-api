@@ -243,6 +243,7 @@ apiV1Routes.post("/user/peep", (req, res) => {
     q += "WHERE email = '" + email + "'";
     postgresPool.query(q, (err, result) => {
       if (err) {
+        console.error(q);
         console.error(err);
         res.status(500).send();
       }
@@ -253,6 +254,7 @@ apiV1Routes.post("/user/peep", (req, res) => {
 
         postgresPool.query(q, (err, result) => {
           if (err) {
+            console.error(q);
             console.error(err);
             res.status(500).send();
           }
@@ -265,6 +267,7 @@ apiV1Routes.post("/user/peep", (req, res) => {
 
             postgresPool.query(q, (err, result) => {
               if (err) {
+                console.error(q);
                 console.error(err);
                 res.status(500).send();
               }
