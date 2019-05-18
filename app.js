@@ -248,6 +248,7 @@ apiV1Routes.post("/user/peep", (req, res) => {
         res.status(500).send();
       }
       else {
+        q = "";
         q += "UPDATE email_2_peep_uuids SET ";
         q += "peep_uuids = array_append(peep_uuids, '" + peepUUID + "') ";
         q += "WHERE email = '" + email + "'";
