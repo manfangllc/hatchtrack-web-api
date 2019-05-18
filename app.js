@@ -236,21 +236,20 @@ apiV1Routes.post("/user/peep", (req, res) => {
   }
   else {
     var q = "";
+    // Force removal first just to be safe. Also has benefit of pushing
+    // UUID to the back if it already existed.
     q += "UPDATE email_2_peep_uuids SET ";
-    q += "peep_uuids = array_append(peep_uuids, '" + peepUUID + "') ";
+    q += "peep_uuids = array_remove(peep_uuids, '" + peepUUID + "') ";
     q += "WHERE email = '" + email + "'";
-
     postgresPool.query(q, (err, result) => {
       if (err) {
         console.error(err);
         res.status(500).send();
       }
       else {
-
-        q = "";
-        q += "INSERT INTO peep_uuid_2_info (uuid, name, hatch_uuids) "
-        q += "VALUES ('" + peepUUID + "', 'New Peep', '{}') ";
-        q += "ON CONFLICT (uuid) DO NOTHING";
+        q += "UPDATE email_2_peep_uuids SET ";
+        q += "peep_uuids = array_append(peep_uuids, '" + peepUUID + "') ";
+        q += "WHERE email = '" + email + "'";
 
         postgresPool.query(q, (err, result) => {
           if (err) {
@@ -258,7 +257,21 @@ apiV1Routes.post("/user/peep", (req, res) => {
             res.status(500).send();
           }
           else {
-            res.status(200).send();
+
+            q = "";
+            q += "INSERT INTO peep_uuid_2_info (uuid, name, hatch_uuids) "
+            q += "VALUES ('" + peepUUID + "', 'New Peep', '{}') ";
+            q += "ON CONFLICT (uuid) DO NOTHING";
+
+            postgresPool.query(q, (err, result) => {
+              if (err) {
+                console.error(err);
+                res.status(500).send();
+              }
+              else {
+                res.status(200).send();
+              }
+            });
           }
         });
       }
