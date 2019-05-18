@@ -30,7 +30,7 @@ Get user's registered Peeps.
 Output
 ```javascript
 {
-  peepUUIDs:
+  "peepUUIDs":
    [ '425e11b3-5844-4626-b05a-219d9751e5ca',
      '86559e4a-c115-4412-a8b3-b0f54486a18c' ]
 }
@@ -105,7 +105,7 @@ Input
 Output
 ```javascript
 {
-  hatchUUIDs: [ '50188540-75b7-11e9-82e1-db44545430e3' ]
+  "hatchUUIDs": [ '50188540-75b7-11e9-82e1-db44545430e3' ]
 }
 ```
 
@@ -144,10 +144,9 @@ Input
 Output
 ```javascript
 {
-  startUnixTimestamp: 1558042258,
-  endUnixTimestamp: 2147483647,
-  endUnixTimestamp: 2147483647,
-  measureIntervalMin: 15,
-  temperatureOffsetCelsius: 0
+  "startUnixTimestamp": 1558042258,
+  "endUnixTimestamp": 2147483647,
+  "measureIntervalMin": 15,
+  "temperatureOffsetCelsius": 0
 }
 ```
