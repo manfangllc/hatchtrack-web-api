@@ -5,6 +5,7 @@ const awsCognito = require('amazon-cognito-identity-js');
 const util = require("util");
 const uuid = require("uuid/v1");
 const { Pool } = require("pg");
+const influx = require("influx")
 const jwt = require("jsonwebtoken");
 const https = require("https");
 const morgan = require("morgan");
@@ -23,6 +24,30 @@ const postgresPool = new Pool({
   database: config.postgresPoolDatabase,
   password: config.postgresPoolPassword,
   port: config.postgresPoolPort,
+});
+
+// influxdb configuration /////////////////////////////////////////////////////
+
+const influxClient = new influx.InfluxDB({
+  host: 'db.hatchtrack.com',
+  database: 'peep0',
+  port: 8086,
+  protocol: "https",
+  username: "reader",
+  password: "B5FX6jIhXz0kbBxE",
+  schema: [
+    {
+      measurement: 'peep',
+      fields: {
+        humdity: influx.FieldType.FLOAT,
+        temperature: influx.FieldType.FLOAT,
+      },
+      tags: [
+        'hatch_uuid',
+        'peep_uuid'
+      ]
+    }
+  ]
 });
 
 // AWS Cognito configuration //////////////////////////////////////////////////
@@ -91,6 +116,19 @@ app.use((err, req, res, next) => {
   }
   return next();
 });
+
+app.get('/test', function (req, res) {
+  var q = "";
+  q += "SELECT * FROM peep WHERE ";
+  q += "peep_uuid='425e11b3-5844-4626-b05a-219d9751e5ca'";
+  q += "GROUP BY * ORDER BY ASC LIMIT 1";
+
+  influxClient.query(q).then(result => {
+    res.status(200).json(result);
+  }).catch(err => {
+    res.status(500).send(err.stack);
+  })
+})
 
 app.post("/auth", (req, res) => {
   var email = req.body.email;
