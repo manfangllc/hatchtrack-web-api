@@ -145,7 +145,7 @@ Output
 ```javascript
 {
   "hatchUUID": "50188540-75b7-11e9-82e1-db44545430e3",
-  "time": 1556816523,
+  "unixTimestamp": 1556816523,
   "humidity": 45.19,
   "temperature": 24.75
 }

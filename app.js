@@ -570,7 +570,7 @@ apiV1Routes.get('/peep/measure/last', function (req, res) {
     influxClient.query(q).then(result => {
       var js = {
         "hatchUUID": result[0].hatch_uuid,
-        "time": result[0].time.getNanoTime() / 1000000000,
+        "unixTimestamp": result[0].time.getNanoTime() / 1000000000,
         "humidity": result[0].humidity,
         "temperature": result[0].temperature,
       };
