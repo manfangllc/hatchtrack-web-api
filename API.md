@@ -127,6 +127,30 @@ Input
 }
 ```
 
+## GET /api/v1/peep/measure/last
+Get all Hatches registered for a given Peep.
+### Input
+**peepUUID**: The 128 bit UUID of the Peep.
+### Output
+**hatchUUID**: The 128 bit UUID of the hatch the measure is from.  
+**time**: Unix timestamp of last measurement.  
+**humidity**: Relative humidity measured as percentage.  
+**temperature**: Temperature measured in Celcius.  
+### Example
+Input
+```
+/api/v1/peep/measure/last?peepUUID=d1533a96-6ab3-42dd-bbce-c6632c296985
+```
+Output
+```javascript
+{
+  "hatchUUID": "50188540-75b7-11e9-82e1-db44545430e3",
+  "time": 1556816523,
+  "humidity": 45.19,
+  "temperature": 24.75
+}
+```
+
 ## GET /api/v1/hatch
 Get information for a given Hatch.
 ### Input

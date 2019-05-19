@@ -5,6 +5,7 @@ const awsCognito = require('amazon-cognito-identity-js');
 const util = require("util");
 const uuid = require("uuid/v1");
 const { Pool } = require("pg");
+const influx = require("influx")
 const jwt = require("jsonwebtoken");
 const https = require("https");
 const morgan = require("morgan");
@@ -23,6 +24,30 @@ const postgresPool = new Pool({
   database: config.postgresPoolDatabase,
   password: config.postgresPoolPassword,
   port: config.postgresPoolPort,
+});
+
+// influxdb configuration /////////////////////////////////////////////////////
+
+const influxClient = new influx.InfluxDB({
+  host: 'db.hatchtrack.com',
+  database: 'peep0',
+  port: 8086,
+  protocol: "https",
+  username: "reader",
+  password: "B5FX6jIhXz0kbBxE",
+  schema: [
+    {
+      measurement: 'peep',
+      fields: {
+        humdity: influx.FieldType.FLOAT,
+        temperature: influx.FieldType.FLOAT,
+      },
+      tags: [
+        'hatch_uuid',
+        'peep_uuid'
+      ]
+    }
+  ]
 });
 
 // AWS Cognito configuration //////////////////////////////////////////////////
@@ -86,7 +111,7 @@ else if (process.env.NODE_ENV === "production") {
 app.use((err, req, res, next) => {
   // this is used as a generic error handler for anything not caught elsewhere
   if (err !== null) {
-    console.log(err);
+    console.error(err);
     return res.status(400).send();
   }
   return next();
@@ -524,9 +549,37 @@ apiV1Routes.post("/peep/hatch", (req, res) => {
       });
     }
     catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).send();
     }
+  }
+});
+
+apiV1Routes.get('/peep/measure/last', function (req, res) {
+  var peepUUID = req.query.peepUUID;
+
+  if ("undefined" === peepUUID) {
+    res.status(422).send();
+  }
+  else {
+    var q = "";
+    q += "SELECT * FROM peep WHERE ";
+    q += "peep_uuid='" + peepUUID + "' ";
+    q += "GROUP BY * ORDER BY ASC LIMIT 1";
+
+    influxClient.query(q).then(result => {
+      var js = {
+        "hatchUUID": result[0].hatch_uuid,
+        "time": result[0].time.getNanoTime() / 1000000000,
+        "humidity": result[0].humidity,
+        "temperature": result[0].temperature,
+      };
+
+      res.status(200).json(js);
+    }).catch(err => {
+      console.error(err);
+      res.status(500);
+    });
   }
 });
 

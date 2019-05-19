@@ -14,6 +14,7 @@
     "aws-iot-device-sdk": "^2.2.1",
     "body-parser": "^1.19.0",
     "express": "^4.16.4",
+    "influx": "^5.0.7",
     "jsonwebtoken": "^8.5.1",
     "morgan": "^1.9.1",
     "node-fetch": "^2.4.1",
