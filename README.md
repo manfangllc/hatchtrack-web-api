@@ -25,7 +25,6 @@ $ npm run-script test
 > NODE_ENV=development node ./app.js
 
 listening on port 18888
-
 ```
 
 When deploying this server on a target with the SSL scripts loaded onto it, run
