@@ -514,7 +514,7 @@ apiV1Routes.post("/peep/hatch", (req, res) => {
   var startUnixTimestamp = Date.now() / 1000;
   var endUnixTimestamp = parseInt(req.body.endUnixTimestamp);
   var measureIntervalMin = parseInt(req.body.measureIntervalMin);
-  var temperatureOffsetCelsius = parseInt(req.body.temperatureOffsetCelsius);
+  var temperatureOffsetCelsius = parseFloat(req.body.temperatureOffsetCelsius);
 
   if (("undefined" === typeof email) ||
       ("undefined" === typeof peepUUID) ||
