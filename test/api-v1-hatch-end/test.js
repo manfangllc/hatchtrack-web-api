@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 
 const url = "http://localhost:18888";
 const auth = {email: "test@widgt.ninja", password: "Test1337$"};
-const hatchUUID = "test";
+const hatchUUID = "a072ccb0-7b7c-11e9-914b-fdd5b326736e";
 
 postData(url + "/auth", null, auth)
   .then(function(data) {
