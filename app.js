@@ -626,6 +626,56 @@ apiV1Routes.get("/hatch", (req, res) => {
   }
 });
 
+apiV1Routes.post("/hatch/end", (req, res) => {
+  var hatchUUID = req.body.hatchUUID;
+
+  if (("undefined" === typeof hatchUUID)) {
+    res.status(422).send();
+  }
+  else {
+    var q = "";
+    q += "SELECT end_unix_timestamp FROM hatch_uuid_2_info ";
+    q += "WHERE uuid='" + hatchUUID + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var data = result.rows[0];
+        if ("undefined" === typeof data) {
+          res.status(500).send();
+        }
+        else {
+          var endUnixTimestamp = parseInt(data.end_unix_timestamp);
+          var currentUnixTimestamp = Date.now() / 1000;
+
+          if (currentUnixTimestamp < endUnixTimestamp) {
+            q = "";
+            q += "UPDATE hatch_uuid_2_info SET ";
+            q += "end_unix_timestamp=" + currentUnixTimestamp + " WHERE ";
+            q += "uuid='" + hatchUUID "'";
+            postgresPool.query(q, (err, result) => {
+              if (err) {
+                console.error(err);
+                res.status(500).send();
+              }
+              else {
+                res.status(200).send();
+              }
+            });
+          }
+          else {
+            res.status(200).send();
+          }
+        }
+      }
+    });
+  }
+});
+
+
 // Print out all routes for debugging/development.
 //app._router.stack.forEach(function(r){
   //if (r.route && r.route.path){
