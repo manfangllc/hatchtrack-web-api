@@ -416,18 +416,26 @@ function peepUUID2InfoAppendPostgres(peepUnit, callback) {
 
 function hatchUUID2InfoPostgres(peepUnit, callback) {
   var q = "";
-  q += "INSERT INTO hatch_uuid_2_info "
-  q += "(uuid, start_unix_timestamp, end_unix_timestamp, "
+  q += "INSERT INTO hatch_uuid_2_info ";
+  q += "(uuid, peep_uuid, start_unix_timestamp, end_unix_timestamp, ";
   q += "measure_interval_min, temperature_offset_celsius) ";
-  q += "VALUES ('";
-  q += peepUnit.hatchUUID + "',"; // str
+  q += "VALUES (";
+  q += "'" + peepUnit.hatchUUID + "',"; // str
+  q += "'" + peepUnit.uuid + "',"; // str
   q += peepUnit.startUnixTimestamp + ","; // int
   q += peepUnit.endUnixTimestamp + ","; // int
   q += peepUnit.measureIntervalMin + ","; // int
   q += peepUnit.temperatureOffsetCelsius + ") "; // int
+  q += "ON CONFLICT (uuid) DO UPDATE SET ";
+  q += "peep_uuid=EXCLUDED.peep_uuid, ";
+  q += "start_unix_timestamp=EXCLUDED.peep_uuid, ";
+  q += "end_unix_timestamp=EXCLUDED.end_unix_timestamp, ";
+  q += "measure_interval_min=EXCLUDED.measure_interval_min, ";
+  q += "temperature_offset_celsius=EXCLUDED.temperature_offset_celsius";
 
   postgresPool.query(q, (err, result) => {
     if (err) {
+      console.error(q);
       console.error(err);
       throw 500;
     }
@@ -511,7 +519,7 @@ apiV1Routes.post("/peep/hatch", (req, res) => {
   var email = req.decoded.email;
   var peepUUID = req.body.peepUUID;
   var hatchUUID = uuid();
-  var startUnixTimestamp = Date.now() / 1000;
+  var startUnixTimestamp = Math.floor(Date.now() / 1000);
   var endUnixTimestamp = parseInt(req.body.endUnixTimestamp);
   var measureIntervalMin = parseInt(req.body.measureIntervalMin);
   var temperatureOffsetCelsius = parseFloat(req.body.temperatureOffsetCelsius);
@@ -620,6 +628,75 @@ apiV1Routes.get("/hatch", (req, res) => {
             "measureIntervalMin": data.measure_interval_min,
             "temperatureOffsetCelsius": data.temperature_offset_celsius,
           });
+        }
+      }
+    });
+  }
+});
+
+apiV1Routes.post("/hatch/end", (req, res) => {
+  var email = req.decoded.email;
+  var hatchUUID = req.body.hatchUUID;
+
+  if (("undefined" === typeof hatchUUID)) {
+    res.status(422).send();
+  }
+  else {
+    var q = "";
+    q += "SELECT * FROM hatch_uuid_2_info ";
+    q += "WHERE uuid='" + hatchUUID + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var data = result.rows[0];
+        if ("undefined" === typeof data) {
+          res.status(500).send();
+        }
+        else {
+          var endUnixTimestamp = parseInt(data.end_unix_timestamp);
+          var currentUnixTimestamp = Math.floor(Date.now() / 1000);
+
+          var peepUnit = {
+            email: email,
+            uuid: data.peep_uuid,
+            hatchUUID: hatchUUID,
+            startUnixTimestamp: data.start_unix_timestamp,
+            endUnixTimestamp: currentUnixTimestamp,
+            measureIntervalMin: data.measure_interval_min,
+            temperatureOffsetCelsius: data.temperature_offset_celsius,
+          };
+
+          q = "";
+          q += "UPDATE hatch_uuid_2_info SET ";
+          q += "end_unix_timestamp=" + currentUnixTimestamp + " WHERE ";
+          q += "uuid='" + hatchUUID + "'";
+
+          if (currentUnixTimestamp < endUnixTimestamp) {
+            postgresPool.query(q, (err, result) => {
+              if (err) {
+                console.error(err);
+                res.status(500).send();
+              }
+              else {
+                try {
+                  uuid2hatchAWS(peepUnit, (peepUnit) => {
+                    res.status(200).send();
+                  });
+                }
+                catch (err) {
+                  console.error(err);
+                  res.status(500).send();
+                }
+              }
+            });
+          }
+          else {
+            res.status(200).send();
+          }
         }
       }
     });
