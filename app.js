@@ -397,7 +397,7 @@ apiV1Routes.post("/peep/name", (req, res) => {
   }
 });
 
-function peepUUID2InfoAppendPostgres(peepUnit, callback) {
+async function peepUUID2InfoAppendPostgres(peepUnit) {
   var q = "";
   q += "UPDATE peep_uuid_2_info SET "
   q += "hatch_uuids = array_append(hatch_uuids,'" + peepUnit.hatchUUID + "') "
@@ -408,27 +408,26 @@ function peepUUID2InfoAppendPostgres(peepUnit, callback) {
       console.error(err);
       throw 500;
     }
-    else {
-      callback(peepUnit);
-    }
   });
 }
 
-function hatchUUID2InfoPostgres(peepUnit, callback) {
+async function hatchUUID2InfoPostgres(peepUnit) {
   var q = "";
   q += "INSERT INTO hatch_uuid_2_info ";
-  q += "(uuid, peep_uuid, start_unix_timestamp, end_unix_timestamp, ";
+  q += "(uuid, peep_uuid, email, start_unix_timestamp, end_unix_timestamp, ";
   q += "measure_interval_min, temperature_offset_celsius) ";
   q += "VALUES (";
   q += "'" + peepUnit.hatchUUID + "',"; // str
   q += "'" + peepUnit.uuid + "',"; // str
+  q += "'" + peepUnit.email + "',"; // str
   q += peepUnit.startUnixTimestamp + ","; // int
   q += peepUnit.endUnixTimestamp + ","; // int
   q += peepUnit.measureIntervalMin + ","; // int
   q += peepUnit.temperatureOffsetCelsius + ") "; // int
   q += "ON CONFLICT (uuid) DO UPDATE SET ";
   q += "peep_uuid=EXCLUDED.peep_uuid, ";
-  q += "start_unix_timestamp=EXCLUDED.peep_uuid, ";
+  q += "email=EXCLUDED.email, ";
+  q += "start_unix_timestamp=EXCLUDED.start_unix_timestamp, ";
   q += "end_unix_timestamp=EXCLUDED.end_unix_timestamp, ";
   q += "measure_interval_min=EXCLUDED.measure_interval_min, ";
   q += "temperature_offset_celsius=EXCLUDED.temperature_offset_celsius";
@@ -439,13 +438,10 @@ function hatchUUID2InfoPostgres(peepUnit, callback) {
       console.error(err);
       throw 500;
     }
-    else {
-      callback(peepUnit);
-    }
   });
 }
 
-function uuid2hatchAWS(peepUnit, callback) {
+async function uuid2hatchAWS(peepUnit) {
   var shadow =
   {"state":
     {"desired":
@@ -465,7 +461,7 @@ function uuid2hatchAWS(peepUnit, callback) {
                    function(thingName, stat, clientToken, stateObject) {
       thingShadow.unregister(thingName);
       if (stat === "accepted") {
-        callback(peepUnit);
+        return;
       }
       else {
         throw 500;
@@ -484,6 +480,52 @@ function uuid2hatchAWS(peepUnit, callback) {
     }
   });
 }
+
+apiV1Routes.post("/peep/hatch", async (req, res) => {
+  var email = req.decoded.email;
+  var peepUUID = req.body.peepUUID;
+  var hatchUUID = uuid();
+  var startUnixTimestamp = Math.floor(Date.now() / 1000);
+  var endUnixTimestamp = parseInt(req.body.endUnixTimestamp);
+  var measureIntervalMin = parseInt(req.body.measureIntervalMin);
+  var temperatureOffsetCelsius = parseFloat(req.body.temperatureOffsetCelsius);
+
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof peepUUID) ||
+      ("undefined" === typeof hatchUUID) ||
+      ("undefined" === typeof endUnixTimestamp) ||
+      ("undefined" === typeof measureIntervalMin) ||
+      ("undefined" === typeof temperatureOffsetCelsius)) {
+    res.status(422).send();
+  }
+  else {
+    if (measureIntervalMin <= 0) {
+      measureIntervalMin = 15;
+    }
+
+    var peepUnit = {
+      email: email,
+      uuid: peepUUID,
+      hatchUUID: hatchUUID,
+      startUnixTimestamp: startUnixTimestamp,
+      endUnixTimestamp: endUnixTimestamp,
+      measureIntervalMin: measureIntervalMin,
+      temperatureOffsetCelsius: temperatureOffsetCelsius,
+    };
+
+    try {
+      await uuid2hatchAWS(peepUnit);
+      await hatchUUID2InfoPostgres(peepUnit);
+      await peepUUID2InfoAppendPostgres(peepUnit);
+      res.status(200).send();
+    }
+    catch (err) {
+      console.error(err);
+      res.status(500).send();
+    }
+  }
+});
 
 apiV1Routes.get("/peep/hatches", (req, res) => {
   var peepUUID = req.query.peepUUID;
@@ -512,54 +554,6 @@ apiV1Routes.get("/peep/hatches", (req, res) => {
         res.status(200).json(js);
       }
     });
-  }
-});
-
-apiV1Routes.post("/peep/hatch", (req, res) => {
-  var email = req.decoded.email;
-  var peepUUID = req.body.peepUUID;
-  var hatchUUID = uuid();
-  var startUnixTimestamp = Math.floor(Date.now() / 1000);
-  var endUnixTimestamp = parseInt(req.body.endUnixTimestamp);
-  var measureIntervalMin = parseInt(req.body.measureIntervalMin);
-  var temperatureOffsetCelsius = parseFloat(req.body.temperatureOffsetCelsius);
-
-  if (("undefined" === typeof email) ||
-      ("undefined" === typeof peepUUID) ||
-      ("undefined" === typeof hatchUUID) ||
-      ("undefined" === typeof endUnixTimestamp) ||
-      ("undefined" === typeof measureIntervalMin) ||
-      ("undefined" === typeof temperatureOffsetCelsius)) {
-    res.status(422).send();
-  }
-  else {
-    if (measureIntervalMin <= 0) {
-      measureIntervalMin = 15;
-    }
-
-    var peepUnit = {
-      email: email,
-      uuid: peepUUID,
-      hatchUUID: hatchUUID,
-      startUnixTimestamp: startUnixTimestamp,
-      endUnixTimestamp: endUnixTimestamp,
-      measureIntervalMin: measureIntervalMin,
-      temperatureOffsetCelsius: temperatureOffsetCelsius,
-    };
-
-    try {
-      uuid2hatchAWS(peepUnit, (peepUnit) => {
-        hatchUUID2InfoPostgres(peepUnit, (peepUnit) => {
-          peepUUID2InfoAppendPostgres(peepUnit, (peepUnit) => {
-            res.status(200).send();
-          });
-        });
-      });
-    }
-    catch (err) {
-      console.error(err);
-      res.status(500).send();
-    }
   }
 });
 
@@ -592,6 +586,7 @@ apiV1Routes.get('/peep/measure/last', function (req, res) {
 });
 
 apiV1Routes.get("/hatch", (req, res) => {
+  var email = req.decoded.email;
   var hatchUUID = req.query.hatchUUID;
 
   if ("undefined" === hatchUUID) {
@@ -614,6 +609,7 @@ apiV1Routes.get("/hatch", (req, res) => {
 
         if ("undefined" === typeof data) {
           res.status(200).json({
+            "email": email,
             "startUnixTimestamp": 0,
             "endUnixTimestamp": 0,
             "measureIntervalMin": 15,
@@ -622,7 +618,8 @@ apiV1Routes.get("/hatch", (req, res) => {
         }
         else {
           res.status(200).json({
-             // force int conversion, BIGINT is returned as string
+            "email": email,
+            // force int conversion, BIGINT is returned as string
             "startUnixTimestamp": parseInt(data.start_unix_timestamp),
             "endUnixTimestamp": parseInt(data.end_unix_timestamp),
             "measureIntervalMin": data.measure_interval_min,
