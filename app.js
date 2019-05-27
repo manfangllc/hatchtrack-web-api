@@ -227,7 +227,7 @@ apiV1Routes.get("/user/peeps", (req, res) => {
 
 apiV1Routes.delete("/user/peep", (req, res) => {
   var email = req.decoded.email;
-  var peepUUID = req.query.peepUUID;
+  var peepUUID = req.body.peepUUID;
 
   if (("undefined" === typeof email) ||
       ("undefined" === typeof peepUUID)) {
@@ -673,16 +673,15 @@ apiV1Routes.post("/hatch/end", (req, res) => {
           q += "uuid='" + hatchUUID + "'";
 
           if (currentUnixTimestamp < endUnixTimestamp) {
-            postgresPool.query(q, (err, result) => {
+            postgresPool.query(q, async (err, result) => {
               if (err) {
                 console.error(err);
                 res.status(500).send();
               }
               else {
                 try {
-                  uuid2hatchAWS(peepUnit, (peepUnit) => {
-                    res.status(200).send();
-                  });
+                  await uuid2hatchAWS(peepUnit);
+                  res.status(200).send();
                 }
                 catch (err) {
                   console.error(err);
