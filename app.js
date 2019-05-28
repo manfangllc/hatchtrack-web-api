@@ -631,6 +631,82 @@ apiV1Routes.get("/hatch", (req, res) => {
   }
 });
 
+apiV1Routes.post("/hatch/reconfig", (req, res) => {
+  var email = req.decoded.email;
+  var hatchUUID = req.body.hatchUUID;
+  var endUnixTimestamp = req.body.endUnixTimestamp;
+  var measureIntervalMin = req.body.measureIntervalMin;
+  var temperatureOffsetCelsius = req.body.temperatureOffsetCelsius;
+
+  if (("undefined" === typeof email) ||
+      ("undefined" === typeof hatchUUID) ||
+      ("undefined" === typeof endUnixTimestamp) ||
+      ("undefined" === typeof measureIntervalMin) ||
+      ("undefined" === typeof temperatureOffsetCelsius)) {
+    res.status(422).send();
+  }
+  else {
+    var q = "";
+    q += "SELECT * FROM hatch_uuid_2_info ";
+    q += "WHERE uuid='" + hatchUUID + "'";
+
+    postgresPool.query(q, (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send();
+      }
+      else {
+        var data = result.rows[0];
+        if ("undefined" === typeof data) {
+          res.status(500).send();
+        }
+        else {
+          var currentUnixTimestamp = Math.floor(Date.now() / 1000);
+
+          var peepUnit = {
+            email: data.email,
+            uuid: data.peep_uuid,
+            hatchUUID: data.uuid,
+            startUnixTimestamp: data.start_unix_timestamp,
+            endUnixTimestamp: endUnixTimestamp,
+            measureIntervalMin: measureIntervalMin,
+            temperatureOffsetCelsius: temperatureOffsetCelsius,
+          };
+
+          q = "";
+          q += "UPDATE hatch_uuid_2_info SET ";
+          q += "end_unix_timestamp=" + currentUnixTimestamp + ", ";
+          q += "measure_interval_min=" + measureIntervalMin + ", ";
+          q += "temperature_offset_celsius=" + temperatureOffsetCelsius + " ";
+          q += "WHERE uuid='" + hatchUUID + "'";
+
+          if (currentUnixTimestamp < endUnixTimestamp) {
+            postgresPool.query(q, async (err, result) => {
+              if (err) {
+                console.error(err);
+                res.status(500).send();
+              }
+              else {
+                try {
+                  await uuid2hatchAWS(peepUnit);
+                  res.status(200).send();
+                }
+                catch (err) {
+                  console.error(err);
+                  res.status(500).send();
+                }
+              }
+            });
+          }
+          else {
+            res.status(200).send();
+          }
+        }
+      }
+    });
+  }
+});
+
 apiV1Routes.post("/hatch/end", (req, res) => {
   var email = req.decoded.email;
   var hatchUUID = req.body.hatchUUID;
