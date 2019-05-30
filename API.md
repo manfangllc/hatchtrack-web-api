@@ -31,8 +31,8 @@ Output
 ```javascript
 {
   "peepUUIDs":
-   [ '425e11b3-5844-4626-b05a-219d9751e5ca',
-     '86559e4a-c115-4412-a8b3-b0f54486a18c' ]
+   [ "425e11b3-5844-4626-b05a-219d9751e5ca",
+     "86559e4a-c115-4412-a8b3-b0f54486a18c" ]
 }
 ```
 ## POST /api/v1/user/peep
@@ -55,7 +55,29 @@ Remove Peep from user's registered Peeps.
 Input
 ```javascript
 {
-    "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985"
+    "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985",
+}
+```
+
+## GET /api/v1/peep
+Get all info for a given Peep.
+### Input
+**peepUUID**: The 128 bit UUID of the Peep.
+### Output
+**peepName**: User given name for the Peep.  
+**hatchUUIDs**: Array of 128 bit UUIDs correlating to all hatches registered with a given Peep.  
+### Example
+Input
+```
+/api/v1/peep/name?peepUUID=d1533a96-6ab3-42dd-bbce-c6632c296985
+```
+Output
+```javascript
+{
+    "peepName": "My Peep"
+    "hatchUUIDs":
+     [ "12396cd0-8179-11e9-8d03-2546fef21d1e",
+       "ac952930-8189-11e9-a98b-717f67765cae" ]
 }
 ```
 
@@ -80,8 +102,8 @@ Output
 ## POST /api/v1/peep/name
 Set the user defined name for a given Peep.
 ### Input
-**peepUUID**: The 128 bit UUID of the Peep.
-**peepName**: The name to assign to the specified Peep.
+**peepUUID**: The 128 bit UUID of the Peep.  
+**peepName**: The name to assign to the specified Peep.  
 ### Example
 Input
 ```javascript
@@ -105,7 +127,7 @@ Input
 Output
 ```javascript
 {
-  "hatchUUIDs": [ '50188540-75b7-11e9-82e1-db44545430e3' ]
+  "hatchUUIDs": [ "50188540-75b7-11e9-82e1-db44545430e3" ]
 }
 ```
 
@@ -115,7 +137,7 @@ Register new Hatch for a given Peep.
 **peepUUID**: The 128 bit UUID of the Peep.  
 **endUnixTimestamp**: The UTC Unix timestamp value at which the Peep will stop a given hatch.  
 **measureIntervalMin**: Period in minutes which a Peep will perform an environmental reading.  
-**temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep.
+**temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep.  
 ### Example
 Input
 ```javascript
@@ -159,7 +181,7 @@ Get information for a given Hatch.
 **startUnixTimestamp**: The UTC Unix timestamp value at which the Hatch was registered.  
 **endUnixTimestamp**: The UTC Unix timestamp value at which the Hatch will end.  
 **measureIntervalMin**: Period in minutes which a Peep will perform an environmental reading for the Hatch.  
-**temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep for this Hatch.
+**temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep for this Hatch.  
 ### Example
 Input
 ```
@@ -172,5 +194,35 @@ Output
   "endUnixTimestamp": 2147483647,
   "measureIntervalMin": 15,
   "temperatureOffsetCelsius": 0
+}
+```
+
+## POST /api/v1/hatch/reconfig
+Change the operating parameters for a given hatch.
+### Input
+**hatchUUID**: The 128 bit UUID of the Hatch to alter.  
+**endUnixTimestamp**: The UTC Unix timestamp value at which the Peep will stop a given hatch.  
+**measureIntervalMin**: Period in minutes which a Peep will perform an environmental reading.  
+**temperatureOffsetCelsius**: Calibration offset in degrees celsius to apply to measurements taken by a Peep.  
+### Example
+Input
+```javascript
+{
+  "hatchUUID": "50188540-75b7-11e9-82e1-db44545430e3"
+  "endUnixTimestamp": 1557804708,
+  "measureIntervalMin": 15,
+  "temperatureOffsetCelsius": 0
+}
+```
+
+## POST /api/v1/hatch/reconfig
+Immediately end a specified Hatch.
+### Input
+**hatchUUID**: The 128 bit UUID of the Hatch to end.
+### Example
+Input
+```javascript
+{
+  "hatchUUID": "50188540-75b7-11e9-82e1-db44545430e3"
 }
 ```

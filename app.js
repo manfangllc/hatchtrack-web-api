@@ -774,15 +774,17 @@ apiV1Routes.post("/hatch/end", (req, res) => {
   }
 });
 
-// Print out all routes for debugging/development.
-//app._router.stack.forEach(function(r){
-  //if (r.route && r.route.path){
-    //console.log(r.route.path);
-  //}
-//});
+if (process.env.NODE_ENV === "development") {
+  // Print out all routes/endpoints.
+  app._router.stack.forEach(function(r){
+    if (r.route && r.route.path){
+      console.log(r.route.path);
+    }
+  });
 
-//apiV1Routes.stack.forEach(function(r){
-  //if (r.route && r.route.path){
-    //console.log(apiV1Routes.routerPath + r.route.path);
-  //}
-//});
+  apiV1Routes.stack.forEach(function(r){
+    if (r.route && r.route.path){
+      console.log(apiV1Routes.routerPath + r.route.path);
+    }
+  });
+}
