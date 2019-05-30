@@ -215,7 +215,7 @@ Input
 }
 ```
 
-## POST /api/v1/hatch/reconfig
+## POST /api/v1/hatch/end
 Immediately end a specified Hatch.
 ### Input
 **hatchUUID**: The 128 bit UUID of the Hatch to end.
