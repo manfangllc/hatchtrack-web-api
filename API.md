@@ -74,7 +74,7 @@ Input
 Output
 ```javascript
 {
-    "peepName": "My Peep"
+    "peepName": "My Peep",
     "hatchUUIDs":
      [ "12396cd0-8179-11e9-8d03-2546fef21d1e",
        "ac952930-8189-11e9-a98b-717f67765cae" ]
@@ -108,7 +108,7 @@ Set the user defined name for a given Peep.
 Input
 ```javascript
 {
-    "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985"
+    "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985",
     "peepName": "My Peep"
 }
 ```
@@ -142,7 +142,7 @@ Register new Hatch for a given Peep.
 Input
 ```javascript
 {
-  "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985"
+  "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985",
   "endUnixTimestamp": 1557804708,
   "measureIntervalMin": 15,
   "temperatureOffsetCelsius": 0
@@ -208,7 +208,7 @@ Change the operating parameters for a given hatch.
 Input
 ```javascript
 {
-  "hatchUUID": "50188540-75b7-11e9-82e1-db44545430e3"
+  "hatchUUID": "50188540-75b7-11e9-82e1-db44545430e3",
   "endUnixTimestamp": 1557804708,
   "measureIntervalMin": 15,
   "temperatureOffsetCelsius": 0
