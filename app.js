@@ -298,7 +298,8 @@ apiV1Routes.post("/user/peep", async (req, res) => {
       q += "INSERT INTO peep_uuid_2_info "
       q += "(uuid, email, name, hatch_uuids) VALUES "
       q += "('" + peepUUID + "', '" + email + "', 'New Peep', '{}') ";
-      q += "ON CONFLICT (uuid) DO UPDATE SET email=EXCLUDED.email";
+      q += "ON CONFLICT (uuid) DO UPDATE SET "
+      q += "email=EXCLUDED.email, name=EXCLUDED.name";
       result = await postgresPool.query(q);
 
       res.status(200).send();
