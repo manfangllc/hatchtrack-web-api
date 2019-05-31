@@ -53,10 +53,8 @@ Remove Peep from user's registered Peeps.
 **peepUUID**: The 128 bit UUID of the Peep to remove.
 ### Example
 Input
-```javascript
-{
-    "peepUUID": "d1533a96-6ab3-42dd-bbce-c6632c296985",
-}
+```
+/api/v1/user/peep?peepUUID=d1533a96-6ab3-42dd-bbce-c6632c296985
 ```
 
 ## GET /api/v1/peep
