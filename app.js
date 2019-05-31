@@ -227,7 +227,7 @@ apiV1Routes.get("/user/peeps", (req, res) => {
 
 apiV1Routes.delete("/user/peep", (req, res) => {
   var email = req.decoded.email;
-  var peepUUID = req.body.peepUUID;
+  var peepUUID = req.query.peepUUID;
 
   if (("undefined" === typeof email) ||
       ("undefined" === typeof peepUUID)) {
@@ -251,7 +251,7 @@ apiV1Routes.delete("/user/peep", (req, res) => {
   }
 });
 
-apiV1Routes.post("/user/peep", (req, res) => {
+apiV1Routes.post("/user/peep", async (req, res) => {
   var email = req.decoded.email;
   var peepUUID = req.body.peepUUID;
 
@@ -260,51 +260,53 @@ apiV1Routes.post("/user/peep", (req, res) => {
     res.status(422).send();
   }
   else {
-    var q = "";
-    // Force removal first just to be safe. Also has benefit of pushing
-    // UUID to the back if it already existed.
-    q += "UPDATE email_2_peep_uuids SET ";
-    q += "peep_uuids = array_remove(peep_uuids, '" + peepUUID + "') ";
-    q += "WHERE email = '" + email + "'";
-    postgresPool.query(q, (err, result) => {
-      if (err) {
-        console.error(q);
-        console.error(err);
-        res.status(500).send();
+    try {
+      var q = "";
+      q = "";
+      q += "SELECT email FROM peep_uuid_2_info WHERE uuid='" + peepUUID + "'";
+      result = await postgresPool.query(q);
+      if ((typeof result.rows[0] === "undefined") ||
+          (typeof result.rows[0].email === "undefined")) {
+        // do nothing, new unit
       }
-      else {
+      else if (result.rows[0].email === email) {
+        // Force removal first just to be safe. Also has benefit of pushing
+        // UUID to the back if it already existed.
         q = "";
         q += "UPDATE email_2_peep_uuids SET ";
-        q += "peep_uuids = array_append(peep_uuids, '" + peepUUID + "') ";
+        q += "peep_uuids = array_remove(peep_uuids, '" + peepUUID + "') ";
         q += "WHERE email = '" + email + "'";
-
-        postgresPool.query(q, (err, result) => {
-          if (err) {
-            console.error(q);
-            console.error(err);
-            res.status(500).send();
-          }
-          else {
-
-            q = "";
-            q += "INSERT INTO peep_uuid_2_info (uuid, name, hatch_uuids) "
-            q += "VALUES ('" + peepUUID + "', 'New Peep', '{}') ";
-            q += "ON CONFLICT (uuid) DO NOTHING";
-
-            postgresPool.query(q, (err, result) => {
-              if (err) {
-                console.error(q);
-                console.error(err);
-                res.status(500).send();
-              }
-              else {
-                res.status(200).send();
-              }
-            });
-          }
-        });
+        result = await postgresPool.query(q);
       }
-    });
+      else {
+        // Someone else previously owned this Peep.
+        var oldEmail = result.rows[0].email;
+        q = "";
+        q += "UPDATE email_2_peep_uuids SET ";
+        q += "peep_uuids = array_remove(peep_uuids, '" + peepUUID + "') ";
+        q += "WHERE email = '" + oldEmail + "'";
+        result = await postgresPool.query(q);
+      }
+
+      q = "";
+      q += "UPDATE email_2_peep_uuids SET ";
+      q += "peep_uuids = array_append(peep_uuids, '" + peepUUID + "') ";
+      q += "WHERE email = '" + email + "'";
+      result = await postgresPool.query(q);
+
+      q = "";
+      q += "INSERT INTO peep_uuid_2_info "
+      q += "(uuid, email, name, hatch_uuids) VALUES "
+      q += "('" + peepUUID + "', '" + email + "', 'New Peep', '{}') ";
+      q += "ON CONFLICT (uuid) DO UPDATE SET email=EXCLUDED.email";
+      result = await postgresPool.query(q);
+
+      res.status(200).send();
+    }
+    catch (err) {
+      console.error(err);
+      res.status(500).send();
+    }
   }
 });
 

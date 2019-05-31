@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 
 const url = "http://localhost:18888";
 const auth = {email: "test@widgt.ninja", password: "Test1337$"};
-const peepUUID = "d1533a96-6ab3-42dd-bbce-c6632c296985";
+const peepUUID = "unit-test-entry";
 
 postData(url + "/auth", null, auth)
   .then(function(data) {
