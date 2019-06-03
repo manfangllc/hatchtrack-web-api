@@ -569,7 +569,7 @@ apiV1Routes.get('/peep/measure/last', function (req, res) {
     var q = "";
     q += "SELECT * FROM peep WHERE ";
     q += "peep_uuid='" + peepUUID + "' ";
-    q += "GROUP BY * ORDER BY DESC LIMIT 1";
+    q += "ORDER BY DESC LIMIT 1";
 
     influxClient.query(q).then(result => {
       var js = {
