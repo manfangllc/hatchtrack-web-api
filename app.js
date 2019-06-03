@@ -677,7 +677,7 @@ apiV1Routes.post("/hatch/reconfig", (req, res) => {
 
           q = "";
           q += "UPDATE hatch_uuid_2_info SET ";
-          q += "end_unix_timestamp=" + currentUnixTimestamp + ", ";
+          q += "end_unix_timestamp=" + endUnixTimestamp + ", ";
           q += "measure_interval_min=" + measureIntervalMin + ", ";
           q += "temperature_offset_celsius=" + temperatureOffsetCelsius + " ";
           q += "WHERE uuid='" + hatchUUID + "'";
